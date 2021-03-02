@@ -6,8 +6,22 @@ using UnityEngine;
 [CustomEditor(typeof(ErodingTerrain))]
 public class ErosionEditor : Editor
 {
+    struct Octave
+    {
+        public Octave(float frequency, float amplitude)
+		{
+            this.frequency = frequency;
+            this.amplitude = amplitude;
+		}
+               
+        float frequency;
+        float amplitude;
+    };
+
     ErodingTerrain terrain;
     ComputeShader shader;
+    List<Octave> octaves = new List<Octave>() { new Octave(1f, 0.2f), new Octave(4f, 0.6f), new Octave(20f, 0.02f) };
+    ComputeBuffer computeBuffer;
 
     Renderer rend;
 
@@ -31,7 +45,7 @@ public class ErosionEditor : Editor
 
         shader.Dispatch(kernelHandle, terrain.resolution / 8, terrain.resolution / 8, 1);
 
-        rend.material.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", terrain.heightMap);
+        rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", terrain.heightMap);
     }
 
     public override void OnInspectorGUI()
@@ -49,5 +63,15 @@ public class ErosionEditor : Editor
         terrain.heightMap.Create();
 
         shader.SetTexture(kernelHandle, "heightMap", terrain.heightMap);
+
+        if(computeBuffer != null)
+		{
+            computeBuffer.Dispose();
+
+        }
+        computeBuffer = new ComputeBuffer(octaves.Count, sizeof(float) * 2);
+        computeBuffer.SetData(octaves);
+        shader.SetBuffer(kernelHandle, "octaves", computeBuffer);
+        shader.SetInt("octaveCount", octaves.Count);
     }
 }

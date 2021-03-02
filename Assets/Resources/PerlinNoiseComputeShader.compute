@@ -1,10 +1,16 @@
-// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
+struct Octave {
+    float frequency;
+    float amplitude;
+};
+
 RWTexture2D<float1> heightMap;
 int resolution;
+
+RWStructuredBuffer<Octave> octaves;
+int octaveCount = 0;
+
 float time;
 
 float noise2D(float2 P);
@@ -16,8 +22,22 @@ float mod289(float x);
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float x = (1.0 + noise2D(float2(id.x / float(resolution) + time, id.y / float(resolution)))) * 0.5;
-    heightMap[id.xy] = float3(x, x, x);
+    float height = 0.0;
+    float x = id.x / float(resolution);
+    float y = id.y / float(resolution);
+
+    if (octaveCount == 0) {
+        height = 1.0 * (1.0 + noise2D(float2(x + time, id.y / y))) * 0.5;
+    }
+    else {
+        for (uint i = 0; i < octaveCount; i++) {
+            float amplitude = octaves[i].amplitude;
+            float frequency = octaves[i].frequency;
+            height = height + amplitude * (1.0 + noise2D(float2(frequency * x + time, frequency * y))) * 0.5;
+        }
+    }
+    
+    heightMap[id.xy] = height;
 }
 
 float noise2D(float2 P)
