@@ -3,9 +3,8 @@
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
-RWTexture2D<float3> material;
-RWTexture2D<float4> flux;
-RWTexture2D<float2> vel;
+RWTexture2D<float1> heightMap;
+int resolution;
 float time;
 
 float noise2D(float2 P);
@@ -14,32 +13,11 @@ float2 fade(float2 t);
 float4 taylorInvSqrt(float4 r);
 float mod289(float x);
 
-float2 random2(float2 st) {
-    st = float2(dot(st, float2(127.1, 311.7)),
-        dot(st, float2(269.5, 183.3)));
-    return -1.0 + 2.0 * frac(sin(st) * 43758.5453123);
-}
-
-// Gradient Noise by Inigo Quilez - iq/2013
-// https://www.shadertoy.com/view/XdXGW8
-float pNoise(float2 st) {
-    float2 i = floor(st);
-    float2 f = frac(st);
-
-    float2 u = f * f * (3.0 - 2.0 * f);
-
-    return lerp(lerp(dot(random2(i + float2(0.0, 0.0)), f - float2(0.0, 0.0)),
-        dot(random2(i + float2(1.0, 0.0)), f - float2(1.0, 0.0)), u.x),
-        lerp(dot(random2(i + float2(0.0, 1.0)), f - float2(0.0, 1.0)),
-            dot(random2(i + float2(1.0, 1.0)), f - float2(1.0, 1.0)), u.x), u.y);
-}
-
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    //float x = (1.0f + 0.5f * sin(id.x * 0.05f + time * 10.0f)) * 0.5f;
-    float x = (1.0 + noise2D(float2(id.x / 100.0 + time, id.y / 100.0))) * 0.5;
-    material[id.xy] = float3(x, x, x);
+    float x = (1.0 + noise2D(float2(id.x / float(resolution) + time, id.y / float(resolution)))) * 0.5;
+    heightMap[id.xy] = float3(x, x, x);
 }
 
 float noise2D(float2 P)

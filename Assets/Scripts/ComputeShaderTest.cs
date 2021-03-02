@@ -10,23 +10,15 @@ public class ComputeShaderTest : MonoBehaviour
     int resolution = 1024;
 
     Renderer rend;
-    public RenderTexture materialTex;
-    RenderTexture fluxTex;
-    RenderTexture velTex;
+    public RenderTexture heightMap;
 
     int kernelHandle;
 
     void Start()
     {
-        materialTex = new RenderTexture(resolution, resolution, 32) { enableRandomWrite = true };
-        materialTex.format = RenderTextureFormat.ARGBFloat;
-        materialTex.Create();
-
-        fluxTex = new RenderTexture(resolution, resolution, 24) { enableRandomWrite = true };
-        fluxTex.Create();
-
-        velTex = new RenderTexture(resolution, resolution, 24) { enableRandomWrite = true };
-        velTex.Create();
+        heightMap = new RenderTexture(resolution, resolution, 32) { enableRandomWrite = true };
+        heightMap.format = RenderTextureFormat.RFloat;
+        heightMap.Create();
 
         rend = GetComponent<Renderer>();
         rend.enabled = true;
@@ -38,11 +30,11 @@ public class ComputeShaderTest : MonoBehaviour
     void Update()
     {
         shader.SetFloat("time", Time.realtimeSinceStartup);
-        shader.SetTexture(kernelHandle, "material", materialTex);
-        shader.SetTexture(kernelHandle, "flux", fluxTex);
-        shader.SetTexture(kernelHandle, "vel", velTex);
+        shader.SetInt("resolution", resolution);
+        shader.SetTexture(kernelHandle, "heightMap", heightMap);
+
         shader.Dispatch(kernelHandle, resolution / 8, resolution / 8, 1);
 
-        rend.material.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", materialTex);
+        rend.material.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", heightMap);
     }
 }
