@@ -14,13 +14,13 @@ public class ErosionEditor : Editor
             this.amplitude = amplitude;
 		}
                
-        float frequency;
-        float amplitude;
+        public float frequency;
+        public float amplitude;
     };
 
     ErodingTerrain terrain;
     ComputeShader shader;
-    List<Octave> octaves = new List<Octave>() { new Octave(1f, 0.2f), new Octave(4f, 0.6f), new Octave(20f, 0.02f) };
+    List<Octave> octaves = new List<Octave>() { new Octave(1f, 1f) };
     ComputeBuffer computeBuffer;
 
     Renderer rend;
@@ -49,15 +49,55 @@ public class ErosionEditor : Editor
     }
 
     public override void OnInspectorGUI()
-    {
-        terrain.resolution = EditorGUILayout.IntField("Resolution ", terrain.resolution);
+	{
+		terrain.resolution = EditorGUILayout.IntField("Resolution ", terrain.resolution);
 
-        shader.SetInt("resolution", terrain.resolution);
-        initialiseHeightMap();
-    }
+		renderOctaveSliders();
 
-    private void initialiseHeightMap()
+		shader.SetInt("resolution", terrain.resolution);
+		initialiseHeightMap();
+	}
+
+	private void renderOctaveSliders()
+	{
+        List<Octave> octavesToRender = new List<Octave>(octaves);
+
+        for (int index = 0; index < octavesToRender.Count; index ++)
+		{
+            Octave octave = octavesToRender[index];
+            EditorGUILayout.BeginHorizontal();
+
+            GUILayout.Label("Freq " + index);
+            float frequency = Mathf.Exp(EditorGUILayout.Slider(Mathf.Log(octave.frequency + 1), 0f, 5f)) - 1;
+            GUILayout.Label("Amp " + index);
+            float amplitude = EditorGUILayout.Slider(octave.amplitude, 0f, 1f);
+
+            if (frequency != octave.frequency || amplitude != octave.amplitude)
+            {
+                octaves[index] = new Octave(frequency, amplitude);
+            }
+
+            if (index > 0)
+            {
+                if (GUILayout.Button("-"))
+                {
+                    octaves.RemoveAt(index);
+                }
+            } else
+			{
+                GUILayout.Label("    ");
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+
+        if (GUILayout.Button("Add Octave")) {
+            octaves.Add(new Octave(1f, 1f));
+		}
+	}
+
+	private void initialiseHeightMap()
     {
+        if (terrain.heightMap != null) terrain.heightMap.Release();
         terrain.heightMap = new RenderTexture(terrain.resolution, terrain.resolution, 32) { enableRandomWrite = true };
         terrain.heightMap.format = RenderTextureFormat.RFloat;
         terrain.heightMap.Create();

@@ -27,7 +27,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float y = id.y / float(resolution);
 
     if (octaveCount == 0) {
-        height = 1.0 * (1.0 + noise2D(float2(x + time, id.y / y))) * 0.5;
+        height = 1.0 * (1.0 + noise2D(float2(x + time, id.y))) * 0.5;
     }
     else {
         for (uint i = 0; i < octaveCount; i++) {
