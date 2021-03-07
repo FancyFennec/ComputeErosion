@@ -19,19 +19,21 @@ public class ErosionEditor : Editor
     };
 
     ErodingTerrain terrain;
-    ComputeShader shader;
+    public int resolution = 1024;
+    ComputeShader perlinNoiseShader;
     List<Octave> octaves = new List<Octave>() { new Octave(1f, 1f) };
     ComputeBuffer computeBuffer;
 
     Renderer rend;
+    RenderTexture heightMap;
 
     int kernelHandle;
 
     private void OnEnable()
 	{
 		terrain = (ErodingTerrain)target;
-        shader = (ComputeShader)Resources.Load("PerlinNoiseComputeShader");
-        kernelHandle = shader.FindKernel("CSMain");
+        perlinNoiseShader = (ComputeShader)Resources.Load("PerlinNoiseComputeShader");
+        kernelHandle = perlinNoiseShader.FindKernel("CSMain");
 
         initialiseHeightMap();
 
@@ -41,22 +43,23 @@ public class ErosionEditor : Editor
 
 	private void OnSceneGUI()
     {
-        shader.SetFloat("time", (float) EditorApplication.timeSinceStartup);
+        perlinNoiseShader.SetFloat("time", (float) EditorApplication.timeSinceStartup);
 
-        shader.Dispatch(kernelHandle, terrain.resolution / 8, terrain.resolution / 8, 1);
+        perlinNoiseShader.Dispatch(kernelHandle, resolution / 8, resolution / 8, 1);
 
-        rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", terrain.heightMap);
+        rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", heightMap);
     }
 
     public override void OnInspectorGUI()
 	{
-		terrain.resolution = EditorGUILayout.IntField("Resolution ", terrain.resolution);
+		resolution = EditorGUILayout.IntField("Resolution ", resolution);
 
 		renderOctaveSliders();
 
-		shader.SetInt("resolution", terrain.resolution);
+		perlinNoiseShader.SetInt("resolution", resolution);
+
 		initialiseHeightMap();
-	}
+    }
 
 	private void renderOctaveSliders()
 	{
@@ -97,12 +100,11 @@ public class ErosionEditor : Editor
 
 	private void initialiseHeightMap()
     {
-        if (terrain.heightMap != null) terrain.heightMap.Release();
-        terrain.heightMap = new RenderTexture(terrain.resolution, terrain.resolution, 32) { enableRandomWrite = true };
-        terrain.heightMap.format = RenderTextureFormat.RFloat;
-        terrain.heightMap.Create();
+        if (heightMap != null) heightMap.Release();
+        heightMap = new RenderTexture(resolution, resolution, 32, RenderTextureFormat.RFloat) { enableRandomWrite = true };
+        heightMap.Create();
 
-        shader.SetTexture(kernelHandle, "heightMap", terrain.heightMap);
+        perlinNoiseShader.SetTexture(kernelHandle, "heightMap", heightMap);
 
         if(computeBuffer != null)
 		{
@@ -111,7 +113,7 @@ public class ErosionEditor : Editor
         }
         computeBuffer = new ComputeBuffer(octaves.Count, sizeof(float) * 2);
         computeBuffer.SetData(octaves);
-        shader.SetBuffer(kernelHandle, "octaves", computeBuffer);
-        shader.SetInt("octaveCount", octaves.Count);
+        perlinNoiseShader.SetBuffer(kernelHandle, "octaves", computeBuffer);
+        perlinNoiseShader.SetInt("octaveCount", octaves.Count);
     }
 }

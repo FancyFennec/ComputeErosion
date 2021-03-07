@@ -5,7 +5,7 @@ struct Octave {
     float amplitude;
 };
 
-RWTexture2D<float1> heightMap;
+RWTexture2D<float> heightMap;
 int resolution;
 
 RWStructuredBuffer<Octave> octaves;
@@ -30,7 +30,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         height = 1.0 * (1.0 + noise2D(float2(x + time, id.y))) * 0.5;
     }
     else {
-        for (uint i = 0; i < octaveCount; i++) {
+        for (int i = 0; i < octaveCount; i++) {
             float amplitude = octaves[i].amplitude;
             float frequency = octaves[i].frequency;
             height = height + amplitude * (1.0 + noise2D(float2(frequency * x + time, frequency * y))) * 0.5;
