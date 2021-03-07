@@ -1,0 +1,20 @@
+#pragma kernel CSMain
+
+struct Octave {
+    float frequency;
+    float amplitude;
+};
+
+RWTexture2D<float> heightMap;
+int resolution;
+
+RWStructuredBuffer<Octave> octaves;
+int octaveCount = 0;
+
+float time;
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    heightMap[id.xy] = heightMap[id.xy];
+}

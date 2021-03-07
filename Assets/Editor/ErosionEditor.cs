@@ -20,22 +20,31 @@ public class ErosionEditor : Editor
 
     ErodingTerrain terrain;
     public int resolution = 1024;
+    float xOffset = 0f;
+    float yOffset = 0f;
     ComputeShader perlinNoiseShader;
+    ComputeShader erosionShader;
+
     List<Octave> octaves = new List<Octave>() { new Octave(1f, 1f) };
-    ComputeBuffer computeBuffer;
+    ComputeBuffer octavesComputeBuffer;
 
     Renderer rend;
     RenderTexture heightMap;
 
-    int kernelHandle;
+    int pNKernelHandle;
+    int eKernelHandle;
 
     private void OnEnable()
 	{
 		terrain = (ErodingTerrain)target;
         perlinNoiseShader = (ComputeShader)Resources.Load("PerlinNoiseComputeShader");
-        kernelHandle = perlinNoiseShader.FindKernel("CSMain");
+        erosionShader = (ComputeShader)Resources.Load("ErosionComputeShader");
+        pNKernelHandle = perlinNoiseShader.FindKernel("CSMain");
+        eKernelHandle = erosionShader.FindKernel("CSMain");
 
-        initialiseHeightMap();
+        SetHeightMap();
+        SetOctaves();
+        SetOffset();
 
         rend = terrain.GetComponent<Renderer>();
 		rend.enabled = true;
@@ -43,25 +52,34 @@ public class ErosionEditor : Editor
 
 	private void OnSceneGUI()
     {
-        perlinNoiseShader.SetFloat("time", (float) EditorApplication.timeSinceStartup);
-
-        perlinNoiseShader.Dispatch(kernelHandle, resolution / 8, resolution / 8, 1);
-
-        rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", heightMap);
     }
 
     public override void OnInspectorGUI()
 	{
 		resolution = EditorGUILayout.IntField("Resolution ", resolution);
+        RenderOffsetSliders();
+        RenderOctaveSliders();
 
-		renderOctaveSliders();
+        perlinNoiseShader.SetInt("resolution", resolution);
+		SetHeightMap();
+        SetOffset();
+        SetOctaves();
 
-		perlinNoiseShader.SetInt("resolution", resolution);
-
-		initialiseHeightMap();
+        perlinNoiseShader.Dispatch(pNKernelHandle, resolution / 8, resolution / 8, 1);
+        rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", heightMap);
     }
 
-	private void renderOctaveSliders()
+	private void RenderOffsetSliders()
+	{
+		EditorGUILayout.BeginHorizontal();
+		GUILayout.Label("X-Offset");
+		xOffset = EditorGUILayout.Slider(xOffset, -5f, +5f);
+		GUILayout.Label("Y-Offset");
+		yOffset = EditorGUILayout.Slider(yOffset, -5f, +5f);
+		EditorGUILayout.EndHorizontal();
+	}
+
+	private void RenderOctaveSliders()
 	{
         List<Octave> octavesToRender = new List<Octave>(octaves);
 
@@ -82,10 +100,7 @@ public class ErosionEditor : Editor
 
             if (index > 0)
             {
-                if (GUILayout.Button("-"))
-                {
-                    octaves.RemoveAt(index);
-                }
+                if (GUILayout.Button("-")) octaves.RemoveAt(index);
             } else
 			{
                 GUILayout.Label("    ");
@@ -98,22 +113,27 @@ public class ErosionEditor : Editor
 		}
 	}
 
-	private void initialiseHeightMap()
+	private void SetHeightMap()
+	{
+		if (heightMap != null) heightMap.Release();
+		heightMap = new RenderTexture(resolution, resolution, 32, RenderTextureFormat.RFloat) { enableRandomWrite = true };
+		heightMap.Create();
+
+		perlinNoiseShader.SetTexture(pNKernelHandle, "heightMap", heightMap);
+	}
+
+    private void SetOctaves()
+	{
+		if (octavesComputeBuffer != null) octavesComputeBuffer.Dispose();
+		octavesComputeBuffer = new ComputeBuffer(octaves.Count, sizeof(float) * 2);
+		octavesComputeBuffer.SetData(octaves);
+		perlinNoiseShader.SetBuffer(pNKernelHandle, "octaves", octavesComputeBuffer);
+		perlinNoiseShader.SetInt("octaveCount", octaves.Count);
+	}
+
+    private void SetOffset()
     {
-        if (heightMap != null) heightMap.Release();
-        heightMap = new RenderTexture(resolution, resolution, 32, RenderTextureFormat.RFloat) { enableRandomWrite = true };
-        heightMap.Create();
-
-        perlinNoiseShader.SetTexture(kernelHandle, "heightMap", heightMap);
-
-        if(computeBuffer != null)
-		{
-            computeBuffer.Dispose();
-
-        }
-        computeBuffer = new ComputeBuffer(octaves.Count, sizeof(float) * 2);
-        computeBuffer.SetData(octaves);
-        perlinNoiseShader.SetBuffer(kernelHandle, "octaves", computeBuffer);
-        perlinNoiseShader.SetInt("octaveCount", octaves.Count);
+        perlinNoiseShader.SetFloat("xOffset", xOffset);
+        perlinNoiseShader.SetFloat("yOffset", yOffset);
     }
 }

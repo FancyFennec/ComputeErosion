@@ -11,7 +11,8 @@ int resolution;
 RWStructuredBuffer<Octave> octaves;
 int octaveCount = 0;
 
-float time;
+float xOffset;
+float yOffset;
 
 float noise2D(float2 P);
 float4 permute(float4 x);
@@ -27,13 +28,13 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float y = id.y / float(resolution);
 
     if (octaveCount == 0) {
-        height = 1.0 * (1.0 + noise2D(float2(x + time, id.y))) * 0.5;
+        height = 1.0 * (1.0 + noise2D(float2(x + xOffset, id.y + yOffset))) * 0.5;
     }
     else {
         for (int i = 0; i < octaveCount; i++) {
             float amplitude = octaves[i].amplitude;
             float frequency = octaves[i].frequency;
-            height = height + amplitude * (1.0 + noise2D(float2(frequency * x + time, frequency * y))) * 0.5;
+            height = height + amplitude * (1.0 + noise2D(float2(frequency * (x + xOffset), frequency * (y + yOffset)))) * 0.5;
         }
     }
     
