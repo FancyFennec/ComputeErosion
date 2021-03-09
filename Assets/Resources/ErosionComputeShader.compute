@@ -6,18 +6,32 @@ struct Flux
     float2 v;
 };
 
-RWTexture2D<float> heightMap;
+RWTexture2D<float> height;
 RWTexture2D<float> water;
 RWTexture2D<float> sediment;
 RWStructuredBuffer<Flux> flux;
 
 int resolution;
 
+float4 computeDeltaH(uint3 id);
+
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float f = 0.00002;
+    float f = 0.0002;
+
+    float4 dH = computeDeltaH(id);
+
     flux[id.x + resolution * id.y].f = flux[id.x + resolution * id.y].f + float4(f,f,f,f);
 
-    heightMap[id.xy] = clamp(heightMap[id.xy] - flux[id.x + resolution * id.y].f.x, 0, 10);
+    height[id.xy] = clamp(height[id.xy] - flux[id.x + resolution * id.y].f.x, 0, 10);
+}
+
+float4 computeDeltaH(uint3 id) 
+{
+    float hL = water[id.xy] + height[id.xy] - water[uint2(id.x - 1, id.y)] - height[uint2(id.x - 1, id.y)];
+    float hR = water[id.xy] + height[id.xy] - water[uint2(id.x + 1, id.y)] - height[uint2(id.x + 1, id.y)];
+    float hT = water[id.xy] + height[id.xy] - water[uint2(id.x, id.y + 1)] - height[uint2(id.x, id.y + 1)];
+    float hB = water[id.xy] + height[id.xy] - water[uint2(id.x, id.y - 1)] - height[uint2(id.x, id.y - 1)];
+    return float4(hL, hR, hT, hB);
 }

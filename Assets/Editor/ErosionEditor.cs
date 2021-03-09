@@ -64,6 +64,9 @@ public class ErosionEditor : Editor
         SetOctaves();
         SetOffset();
 
+        SetWater();
+        SetSediment();
+
         rend = terrain.GetComponent<Renderer>();
 		rend.enabled = true;
 	}
