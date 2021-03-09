@@ -1,20 +1,23 @@
 #pragma kernel CSMain
 
-struct Octave {
-    float frequency;
-    float amplitude;
+struct Flux
+{
+    float4 f;
+    float2 v;
 };
 
 RWTexture2D<float> heightMap;
+RWTexture2D<float> water;
+RWTexture2D<float> sediment;
+RWStructuredBuffer<Flux> flux;
+
 int resolution;
-
-RWStructuredBuffer<Octave> octaves;
-int octaveCount = 0;
-
-float time;
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    heightMap[id.xy] = heightMap[id.xy];
+    float f = 0.00002;
+    flux[id.x + resolution * id.y].f = flux[id.x + resolution * id.y].f + float4(f,f,f,f);
+
+    heightMap[id.xy] = clamp(heightMap[id.xy] - flux[id.x + resolution * id.y].f.x, 0, 10);
 }

@@ -18,31 +18,49 @@ public class ErosionEditor : Editor
         public float amplitude;
     };
 
+    struct Flux
+    {
+        public Vector4 f;
+        public Vector2 v;
+    };
+
+    private bool editingTerrain = true;
+
     ErodingTerrain terrain;
-    public int resolution = 1024;
-    float xOffset = 0f;
-    float yOffset = 0f;
+
     ComputeShader perlinNoiseShader;
     ComputeShader erosionShader;
+
+    Renderer rend;
+
+    RenderTexture height;
+    RenderTexture water;
+    RenderTexture sediment;
 
     List<Octave> octaves = new List<Octave>() { new Octave(1f, 1f) };
     ComputeBuffer octavesComputeBuffer;
 
-    Renderer rend;
-    RenderTexture heightMap;
+    Flux[] flux;
+    ComputeBuffer fluxBuffer;
+
+    public int resolution = 1024;
+    float xOffset = 0f;
+    float yOffset = 0f;
 
     int pNKernelHandle;
-    int eKernelHandle;
+    int erKernelHandle;
 
     private void OnEnable()
 	{
 		terrain = (ErodingTerrain)target;
-        perlinNoiseShader = (ComputeShader)Resources.Load("PerlinNoiseComputeShader");
-        erosionShader = (ComputeShader)Resources.Load("ErosionComputeShader");
-        pNKernelHandle = perlinNoiseShader.FindKernel("CSMain");
-        eKernelHandle = erosionShader.FindKernel("CSMain");
 
-        SetHeightMap();
+        perlinNoiseShader = (ComputeShader)Resources.Load("PerlinNoiseComputeShader");
+        pNKernelHandle = perlinNoiseShader.FindKernel("CSMain");
+
+        erosionShader = (ComputeShader)Resources.Load("ErosionComputeShader");
+        erKernelHandle = erosionShader.FindKernel("CSMain");
+
+        SetHeight();
         SetOctaves();
         SetOffset();
 
@@ -52,21 +70,38 @@ public class ErosionEditor : Editor
 
 	private void OnSceneGUI()
     {
+        if(!editingTerrain)
+		{
+            if(flux == null) SetFlux();
+            erosionShader.SetInt("resolution", resolution);
+            erosionShader.SetTexture(erKernelHandle, "height", height);
+            erosionShader.Dispatch(erKernelHandle, resolution / 8, resolution / 8, 1);
+        }
     }
 
     public override void OnInspectorGUI()
 	{
+		editingTerrain = EditorGUILayout.Toggle("EditTerrain", editingTerrain);
+
+		if (editingTerrain)
+		{
+            RenderTerrainEditor();
+        }
+    }
+
+	private void RenderTerrainEditor()
+	{
 		resolution = EditorGUILayout.IntField("Resolution ", resolution);
-        RenderOffsetSliders();
-        RenderOctaveSliders();
+		RenderOffsetSliders();
+		RenderOctaveSliders();
 
-        perlinNoiseShader.SetInt("resolution", resolution);
-		SetHeightMap();
-        SetOffset();
-        SetOctaves();
+		perlinNoiseShader.SetInt("resolution", resolution);
+		SetHeight();
+		SetOffset();
+		SetOctaves();
 
-        perlinNoiseShader.Dispatch(pNKernelHandle, resolution / 8, resolution / 8, 1);
-        rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", heightMap);
+		perlinNoiseShader.Dispatch(pNKernelHandle, resolution / 8, resolution / 8, 1);
+        rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", height);
     }
 
 	private void RenderOffsetSliders()
@@ -113,14 +148,32 @@ public class ErosionEditor : Editor
 		}
 	}
 
-	private void SetHeightMap()
+	private void SetHeight()
 	{
-		if (heightMap != null) heightMap.Release();
-		heightMap = new RenderTexture(resolution, resolution, 32, RenderTextureFormat.RFloat) { enableRandomWrite = true };
-		heightMap.Create();
+		if (height != null) height.Release();
+		height = new RenderTexture(resolution, resolution, 32, RenderTextureFormat.RFloat) { enableRandomWrite = true };
+		height.Create();
 
-		perlinNoiseShader.SetTexture(pNKernelHandle, "heightMap", heightMap);
+		perlinNoiseShader.SetTexture(pNKernelHandle, "height", height);
 	}
+
+    private void SetWater()
+    {
+        if (water != null) water.Release();
+        water = new RenderTexture(resolution, resolution, 32, RenderTextureFormat.RFloat) { enableRandomWrite = true };
+        water.Create();
+
+        erosionShader.SetTexture(erKernelHandle, "water", water);
+    }
+
+    private void SetSediment()
+    {
+        if (sediment != null) sediment.Release();
+        sediment = new RenderTexture(resolution, resolution, 32, RenderTextureFormat.RFloat) { enableRandomWrite = true };
+        sediment.Create();
+
+        erosionShader.SetTexture(erKernelHandle, "sediment", sediment);
+    }
 
     private void SetOctaves()
 	{
@@ -130,6 +183,15 @@ public class ErosionEditor : Editor
 		perlinNoiseShader.SetBuffer(pNKernelHandle, "octaves", octavesComputeBuffer);
 		perlinNoiseShader.SetInt("octaveCount", octaves.Count);
 	}
+
+    private void SetFlux()
+    {
+        flux = new Flux[resolution * resolution];
+        if (fluxBuffer != null) fluxBuffer.Dispose();
+        fluxBuffer = new ComputeBuffer(resolution * resolution, sizeof(float) * 6);
+        fluxBuffer.SetData(flux);
+        erosionShader.SetBuffer(erKernelHandle, "flux", fluxBuffer); 
+    }
 
     private void SetOffset()
     {
