@@ -50,9 +50,14 @@ public class ErosionEditor : Editor
     int pNKernelHandle;
     int erKernelHandle;
 
+    float dTime = 0f;
+    float lastTime = 0f;
+
     private void OnEnable()
 	{
-		terrain = (ErodingTerrain)target;
+        lastTime = (float) EditorApplication.timeSinceStartup;
+
+        terrain = (ErodingTerrain)target;
 
         perlinNoiseShader = (ComputeShader)Resources.Load("PerlinNoiseComputeShader");
         pNKernelHandle = perlinNoiseShader.FindKernel("CSMain");
@@ -73,9 +78,12 @@ public class ErosionEditor : Editor
 
 	private void OnSceneGUI()
     {
-        if(!editingTerrain)
+        UpdateDTime();
+
+        if (!editingTerrain)
 		{
             if(flux == null) SetFlux();
+            erosionShader.SetFloat("dTime", dTime);
             erosionShader.SetInt("resolution", resolution);
             erosionShader.SetTexture(erKernelHandle, "height", height);
             erosionShader.Dispatch(erKernelHandle, resolution / 8, resolution / 8, 1);
@@ -200,5 +208,12 @@ public class ErosionEditor : Editor
     {
         perlinNoiseShader.SetFloat("xOffset", xOffset);
         perlinNoiseShader.SetFloat("yOffset", yOffset);
+    }
+
+    private void UpdateDTime()
+    {
+		float newTime = (float)EditorApplication.timeSinceStartup;
+		dTime = newTime - lastTime;
+        lastTime = newTime;
     }
 }

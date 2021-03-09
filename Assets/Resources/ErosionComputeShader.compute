@@ -12,19 +12,26 @@ RWTexture2D<float> sediment;
 RWStructuredBuffer<Flux> flux;
 
 int resolution;
+float dTime;
 
 float4 computeDeltaH(uint3 id);
+void computeFlux(float4 dH);
+float computeScalingFactor(uint3 id);
+
+int index;
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float f = 0.0002;
+    index = id.x + resolution * id.y;
 
     float4 dH = computeDeltaH(id);
+    computeFlux(dH);
+    float k = computeScalingFactor(id);
+    flux[index].f = k * flux[index].f;
 
-    flux[id.x + resolution * id.y].f = flux[id.x + resolution * id.y].f + float4(f,f,f,f);
 
-    height[id.xy] = clamp(height[id.xy] - flux[id.x + resolution * id.y].f.x, 0, 10);
+    height[id.xy] = clamp(height[id.xy] - flux[index].f.x, 0, 10);
 }
 
 float4 computeDeltaH(uint3 id) 
@@ -34,4 +41,17 @@ float4 computeDeltaH(uint3 id)
     float hT = water[id.xy] + height[id.xy] - water[uint2(id.x, id.y + 1)] - height[uint2(id.x, id.y + 1)];
     float hB = water[id.xy] + height[id.xy] - water[uint2(id.x, id.y - 1)] - height[uint2(id.x, id.y - 1)];
     return float4(hL, hR, hT, hB);
+}
+
+void computeFlux(float4 dH)
+{
+    float c = 9.81; // A * g / l
+    flux[index].f = max(0.0, flux[index].f + dTime * c * dH);
+}
+
+float computeScalingFactor(uint3 id)
+{
+    float c = 1; // lx*ly
+    float4 f = flux[index].f;
+    return min(1.0, water[id.xy] * c / ((f.x + f.y + f.z + f.w) * dTime));
 }
