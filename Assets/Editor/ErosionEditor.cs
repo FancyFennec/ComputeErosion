@@ -36,12 +36,10 @@ public class ErosionEditor : Editor
     RenderTexture height;
     RenderTexture water;
     RenderTexture sediment;
+    RenderTexture flux;
 
     List<Octave> octaves = new List<Octave>() { new Octave(1f, 1f) };
     ComputeBuffer octavesComputeBuffer;
-
-    Flux[] flux;
-    ComputeBuffer fluxBuffer;
 
     public int resolution = 1024;
     float xOffset = 0f;
@@ -62,15 +60,12 @@ public class ErosionEditor : Editor
         perlinNoiseShader = (ComputeShader)Resources.Load("PerlinNoiseComputeShader");
         pNKernelHandle = perlinNoiseShader.FindKernel("CSMain");
 
-        erosionShader = (ComputeShader)Resources.Load("ErosionComputeShader");
+        erosionShader = (ComputeShader)Resources.Load("FluxComputeShader");
         erKernelHandle = erosionShader.FindKernel("CSMain");
 
         SetHeight();
         SetOctaves();
         SetOffset();
-
-        SetWater();
-        SetSediment();
 
         rend = terrain.GetComponent<Renderer>();
 		rend.enabled = true;
@@ -82,10 +77,14 @@ public class ErosionEditor : Editor
 
         if (!editingTerrain)
 		{
-            if(flux == null) SetFlux();
+            if (flux == null)
+            {
+                SetFlux();
+                SetWater();
+                SetSediment();
+                erosionShader.SetTexture(erKernelHandle, "height", height);
+            }
             erosionShader.SetFloat("dTime", dTime);
-            erosionShader.SetInt("resolution", resolution);
-            erosionShader.SetTexture(erKernelHandle, "height", height);
             erosionShader.Dispatch(erKernelHandle, resolution / 8, resolution / 8, 1);
         }
     }
@@ -96,11 +95,14 @@ public class ErosionEditor : Editor
 
 		if (editingTerrain)
 		{
-            RenderTerrainEditor();
+			RenderTerrainEditor();
+			ClearFlux();
+            ClearWater();
+            ClearSediment();
         }
-    }
+	}
 
-	private void RenderTerrainEditor()
+    private void RenderTerrainEditor()
 	{
 		resolution = EditorGUILayout.IntField("Resolution ", resolution);
 		RenderOffsetSliders();
@@ -183,7 +185,8 @@ public class ErosionEditor : Editor
         sediment = new RenderTexture(resolution, resolution, 32, RenderTextureFormat.RFloat) { enableRandomWrite = true };
         sediment.Create();
 
-        erosionShader.SetTexture(erKernelHandle, "sediment", sediment);
+        //TODO: put this into the right shader
+        //erosionShader.SetTexture(erKernelHandle, "sediment", sediment);
     }
 
     private void SetOctaves()
@@ -197,11 +200,11 @@ public class ErosionEditor : Editor
 
     private void SetFlux()
     {
-        flux = new Flux[resolution * resolution];
-        if (fluxBuffer != null) fluxBuffer.Dispose();
-        fluxBuffer = new ComputeBuffer(resolution * resolution, sizeof(float) * 6);
-        fluxBuffer.SetData(flux);
-        erosionShader.SetBuffer(erKernelHandle, "flux", fluxBuffer); 
+        if (flux != null) flux.Release();
+        flux = new RenderTexture(resolution, resolution, 32, RenderTextureFormat.ARGBFloat) { enableRandomWrite = true };
+        flux.Create();
+
+        erosionShader.SetTexture(erKernelHandle, "flux", flux);
     }
 
     private void SetOffset()
@@ -215,5 +218,32 @@ public class ErosionEditor : Editor
 		float newTime = (float)EditorApplication.timeSinceStartup;
 		dTime = newTime - lastTime;
         lastTime = newTime;
+    }
+
+    private void ClearFlux()
+    {
+        if (flux != null)
+        {
+            flux.Release();
+            flux = null;
+        }
+    }
+
+    private void ClearWater()
+    {
+        if (water != null)
+        {
+            water.Release();
+            water = null;
+        }
+    }
+
+    private void ClearSediment()
+    {
+        if (sediment != null)
+        {
+            sediment.Release();
+            sediment = null;
+        }
     }
 }
