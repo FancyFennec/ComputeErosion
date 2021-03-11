@@ -1,0 +1,42 @@
+#pragma kernel CSMain
+
+RWTexture2D<float4> flux;
+RWTexture2D<float2> water;
+RWTexture2D<float2> vel;
+
+float dTime;
+
+float computeDeltaV(uint3 id);
+float2 computeDeltaW(uint3 id);
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    float dV = computeDeltaV(id);
+    water[id.xy] = float2(water[id.xy].x, water[id.xy].x + dV);
+
+    float2 dW = computeDeltaW(id);
+    if (water[id.xy].x == 0.0 && water[id.xy].y == 0.0) {
+        vel[id.xy] = float2(0.0, 0.0);
+    } else {
+        float dMean = (water[id.xy].x + water[id.xy].y) / 2.0;
+        vel[id.xy] =  dW / dMean;
+    }
+}
+
+float computeDeltaV(uint3 id) 
+{
+    float fIn = flux[uint2(id.x - 1, id.y)].y 
+              + flux[uint2(id.x, id.y - 1)].z 
+              + flux[uint2(id.x + 1, id.y)].x 
+              + flux[uint2(id.x, id.y + 1)].w;
+    float fOut = flux[id.xy].x + flux[id.xy].y + flux[id.xy].z + flux[id.xy].w;
+    return dTime * (fIn - fOut);
+}
+
+float2 computeDeltaW(uint3 id)
+{
+    float dWx = (flux[uint2(id.x - 1, id.y)].y - flux[id.xy].x + flux[id.xy].y + flux[uint2(id.x + 1, id.y)].x) / 2.0;
+    float dWy = (flux[uint2(id.x, id.y - 1)].z - flux[id.xy].w + flux[id.xy].z + flux[uint2(id.x, id.y + 1)].w) / 2.0;
+    return float2(dWx, dWy);
+}

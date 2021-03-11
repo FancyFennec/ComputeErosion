@@ -18,18 +18,17 @@ public class ErosionEditor : Editor
         public float amplitude;
     };
 
-    struct Flux
-    {
-        public Vector4 f;
-        public Vector2 v;
-    };
-
     private bool editingTerrain = true;
 
     ErodingTerrain terrain;
 
     ComputeShader perlinNoiseShader;
     ComputeShader erosionShader;
+    ComputeShader waterAndVelShader;
+
+    int pNKernelHandle;
+    int erKernelHandle;
+    int wAndVKernelHandle;
 
     Renderer rend;
 
@@ -46,9 +45,6 @@ public class ErosionEditor : Editor
     float xOffset = 0f;
     float yOffset = 0f;
 
-    int pNKernelHandle;
-    int erKernelHandle;
-
     float dTime = 0f;
     float lastTime = 0f;
 
@@ -63,6 +59,8 @@ public class ErosionEditor : Editor
 
         erosionShader = (ComputeShader)Resources.Load("FluxComputeShader");
         erKernelHandle = erosionShader.FindKernel("CSMain");
+        waterAndVelShader = (ComputeShader)Resources.Load("WaterAndVelComputeShader");
+        wAndVKernelHandle = waterAndVelShader.FindKernel("CSMain");
 
         ResetHeight();
         ResetOctaves();
@@ -92,11 +90,16 @@ public class ErosionEditor : Editor
                 ResetSetVel();
             }
             erosionShader.SetTexture(erKernelHandle, "height", height);
-            erosionShader.SetTexture(erKernelHandle, "water", water);
             erosionShader.SetTexture(erKernelHandle, "flux", flux);
+            erosionShader.SetTexture(erKernelHandle, "water", water);
             erosionShader.SetFloat("dTime", dTime);
-
             erosionShader.Dispatch(erKernelHandle, resolution / 8, resolution / 8, 1);
+
+            waterAndVelShader.SetTexture(erKernelHandle, "flux", flux);
+            waterAndVelShader.SetTexture(wAndVKernelHandle, "water", water);
+            waterAndVelShader.SetTexture(wAndVKernelHandle, "vel", vel);
+            waterAndVelShader.SetFloat("dTime", dTime);
+            waterAndVelShader.Dispatch(erKernelHandle, resolution / 8, resolution / 8, 1);
         }
     }
 
