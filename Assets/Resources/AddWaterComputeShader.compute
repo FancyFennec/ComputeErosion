@@ -5,14 +5,11 @@ RWTexture2D<float2> water;
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-
     float wX = water[id.xy].x;
     float wY = water[id.xy].y;
-
-    if (length(int2(id.xy) - int2(512, 512)) < 100.0) {
+    if (length(int2(id.xy) - int2(1024, 1024)) < 100.0) {
         wX = wX + 0.00001;
     }
-
     water[id.xy] = float2(wX, wY);
 }
 

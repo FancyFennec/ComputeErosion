@@ -43,7 +43,7 @@ public class ErosionEditor : Editor
     List<Octave> octaves = new List<Octave>() { new Octave(1f, 1f) };
     ComputeBuffer octavesComputeBuffer;
 
-    public int resolution = 1024;
+    public int resolution = 2048;
     float xOffset = 0f;
     float yOffset = 0f;
 
