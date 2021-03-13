@@ -1,0 +1,44 @@
+#pragma kernel CSMain
+
+RWTexture2D<float> height;
+RWTexture2D<float4> vel;
+RWTexture2D<float> sed;
+
+float dTime;
+
+float Kc = 100000.0;
+float Ks = 10.0; 
+float Kd = 10.0;
+
+float computeCapacity(uint3 id);
+float alpha(uint3 id);
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+	float C = computeCapacity(id);
+
+	if (C > sed[id.xy]) {
+		float disolvedSed = Ks * (C - sed[id.xy]);
+		height[id.xy] = height[id.xy] - disolvedSed;
+		sed[id.xy] = sed[id.xy] + disolvedSed;
+	}
+	else {
+		float depositedSed = Kd * (sed[id.xy] - C);
+		height[id.xy] = height[id.xy] + depositedSed;
+		sed[id.xy] = sed[id.xy] - depositedSed;
+	}
+}
+
+float computeCapacity(uint3 id) {
+	return Kc * sin(alpha(id)) * length(vel[id.xy]);
+}
+
+float alpha(uint3 id) {
+	float a = 0.0;
+	a = max(a, abs(atan(height[uint2(id.x - 1, id.y)] - height[id.xy])));
+	a = max(a, abs(atan(height[uint2(id.x + 1, id.y)] - height[id.xy])));
+	a = max(a, abs(atan(height[uint2(id.x, id.y + 1)] - height[id.xy])));
+	a = max(a, abs(atan(height[uint2(id.x, id.y - 1)] - height[id.xy])));
+	return min(0.1, a);
+}

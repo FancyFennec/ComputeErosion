@@ -12,7 +12,7 @@ float2 computeDeltaW(uint3 id);
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float area = 3.0f; // lx * ly
+    float area = 10.0f; // lx * ly
     float dV = computeDeltaV(id);
     water[id.xy] = float2(water[id.xy].x, water[id.xy].x + dV / area);
 
@@ -23,8 +23,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         float dMean = (water[id.xy].x + water[id.xy].y) / 2.0;
         vel[id.xy] =  dW / dMean;
     }
-    //TODO: remove this
-    water[id.xy] = float2(water[id.xy].y, 0.0);
 }
 
 float computeDeltaV(uint3 id) 
@@ -39,7 +37,7 @@ float computeDeltaV(uint3 id)
 
 float2 computeDeltaW(uint3 id)
 {
-    float dWx = (flux[uint2(id.x - 1, id.y)].y - flux[id.xy].x + flux[id.xy].y + flux[uint2(id.x + 1, id.y)].x) / 2.0;
-    float dWy = (flux[uint2(id.x, id.y - 1)].z - flux[id.xy].w + flux[id.xy].z + flux[uint2(id.x, id.y + 1)].w) / 2.0;
+    float dWx = (flux[uint2(id.x - 1, id.y)].y - flux[id.xy].x + flux[id.xy].y - flux[uint2(id.x + 1, id.y)].x) / 2.0;
+    float dWy = (flux[uint2(id.x, id.y - 1)].z - flux[id.xy].w + flux[id.xy].z - flux[uint2(id.x, id.y + 1)].w) / 2.0;
     return float2(dWx, dWy);
 }

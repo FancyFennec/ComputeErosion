@@ -24,13 +24,17 @@ public class ErosionEditor : Editor
 
     ComputeShader perlinNoiseShader;
     ComputeShader fluxShader;
-    ComputeShader waterAndVelShader;
+    ComputeShader waterAndVelocityShader;
     ComputeShader addWaterShader;
+    ComputeShader erosionAndDecompositionShader;
+    ComputeShader sedimentTransportAndEvaporationShader;
 
-    int pNKernelHandle;
-    int fKernelHandle;
-    int wAndVKernelHandle;
-    int addWKernelHandle;
+    int perlinNoiseHandle;
+    int fluxHandle;
+    int waterAndVelocityHandle;
+    int addWaterHandle;
+    int erosionAndDecompositionHandle;
+    int sedimentTransportAndEvaporationHandle;
 
     Renderer rend;
 
@@ -43,7 +47,7 @@ public class ErosionEditor : Editor
     List<Octave> octaves = new List<Octave>() { new Octave(1f, 1f) };
     ComputeBuffer octavesComputeBuffer;
 
-    public int resolution = 2048;
+    public int resolution = 1024;
     float xOffset = 0f;
     float yOffset = 0f;
 
@@ -63,9 +67,9 @@ public class ErosionEditor : Editor
 
 		SetOffset();
 		SetOctaves();
-		perlinNoiseShader.SetTexture(pNKernelHandle, "height", height);
+		perlinNoiseShader.SetTexture(perlinNoiseHandle, "height", height);
 		perlinNoiseShader.SetInt("resolution", resolution);
-		perlinNoiseShader.Dispatch(pNKernelHandle, resolution / 8, resolution / 8, 1);
+		perlinNoiseShader.Dispatch(perlinNoiseHandle, resolution / 8, resolution / 8, 1);
 
 		rend = terrain.GetComponent<Renderer>();
 		rend.enabled = true;
@@ -74,15 +78,20 @@ public class ErosionEditor : Editor
 
 	private void InitialiseShaders()
 	{
-		perlinNoiseShader = (ComputeShader)Resources.Load("PerlinNoiseComputeShader");
-		pNKernelHandle = perlinNoiseShader.FindKernel("CSMain");
-		fluxShader = (ComputeShader)Resources.Load("FluxComputeShader");
-		fKernelHandle = fluxShader.FindKernel("CSMain");
-		waterAndVelShader = (ComputeShader)Resources.Load("WaterAndVelComputeShader");
-		wAndVKernelHandle = waterAndVelShader.FindKernel("CSMain");
-		addWaterShader = (ComputeShader)Resources.Load("AddWaterComputeShader");
-		addWKernelHandle = addWaterShader.FindKernel("CSMain");
-	}
+		perlinNoiseShader = (ComputeShader)Resources.Load("PerlinNoise");
+		fluxShader = (ComputeShader)Resources.Load("Flux");
+		waterAndVelocityShader = (ComputeShader)Resources.Load("WaterAndVelocity");
+		addWaterShader = (ComputeShader)Resources.Load("AddWater");
+        erosionAndDecompositionShader = (ComputeShader)Resources.Load("ErosionAndDecomposition");
+        sedimentTransportAndEvaporationShader = (ComputeShader)Resources.Load("SedimentTransportationAndEvaporation");
+
+        perlinNoiseHandle = perlinNoiseShader.FindKernel("CSMain");
+        fluxHandle = fluxShader.FindKernel("CSMain");
+        waterAndVelocityHandle = waterAndVelocityShader.FindKernel("CSMain");
+        addWaterHandle = addWaterShader.FindKernel("CSMain");
+        erosionAndDecompositionHandle = erosionAndDecompositionShader.FindKernel("CSMain");
+        sedimentTransportAndEvaporationHandle = sedimentTransportAndEvaporationShader.FindKernel("CSMain");
+    }
 
 	private void OnSceneGUI()
     {
@@ -97,26 +106,41 @@ public class ErosionEditor : Editor
                 ResetSetSediment();
                 ResetSetVel();
 
-                addWaterShader.SetTexture(addWKernelHandle, "water", water);
+                addWaterShader.SetTexture(addWaterHandle, "water", water);
 
-                fluxShader.SetTexture(fKernelHandle, "height", height);
-                fluxShader.SetTexture(fKernelHandle, "flux", flux);
-                fluxShader.SetTexture(fKernelHandle, "water", water);
+                fluxShader.SetTexture(fluxHandle, "height", height);
+                fluxShader.SetTexture(fluxHandle, "flux", flux);
+                fluxShader.SetTexture(fluxHandle, "water", water);
 
-                waterAndVelShader.SetTexture(fKernelHandle, "flux", flux);
-                waterAndVelShader.SetTexture(wAndVKernelHandle, "water", water);
-                waterAndVelShader.SetTexture(wAndVKernelHandle, "vel", vel);
+                waterAndVelocityShader.SetTexture(fluxHandle, "flux", flux);
+                waterAndVelocityShader.SetTexture(waterAndVelocityHandle, "water", water);
+                waterAndVelocityShader.SetTexture(waterAndVelocityHandle, "vel", vel);
+
+                erosionAndDecompositionShader.SetTexture(erosionAndDecompositionHandle, "height", height);
+                erosionAndDecompositionShader.SetTexture(erosionAndDecompositionHandle, "vel", vel);
+                erosionAndDecompositionShader.SetTexture(erosionAndDecompositionHandle, "sed", sediment);
+
+                sedimentTransportAndEvaporationShader.SetTexture(sedimentTransportAndEvaporationHandle, "water", water);
+                sedimentTransportAndEvaporationShader.SetTexture(sedimentTransportAndEvaporationHandle, "vel", vel);
+                sedimentTransportAndEvaporationShader.SetTexture(sedimentTransportAndEvaporationHandle, "sed", sediment);
+                sedimentTransportAndEvaporationShader.SetInt("resolution", resolution);
 
                 rend.sharedMaterial.SetTexture("Texture2D_6e077698234c43b5858f766869fb4614", water);
             }
 
-            addWaterShader.Dispatch(addWKernelHandle, resolution / 8, resolution / 8, 1);
+            addWaterShader.Dispatch(addWaterHandle, resolution / 8, resolution / 8, 1);
 
             fluxShader.SetFloat("dTime", dTime);
-            fluxShader.Dispatch(fKernelHandle, resolution / 8, resolution / 8, 1);
+            fluxShader.Dispatch(fluxHandle, resolution / 8, resolution / 8, 1);
 
-            waterAndVelShader.SetFloat("dTime", dTime);
-            waterAndVelShader.Dispatch(wAndVKernelHandle, resolution / 8, resolution / 8, 1);
+            waterAndVelocityShader.SetFloat("dTime", dTime);
+            waterAndVelocityShader.Dispatch(waterAndVelocityHandle, resolution / 8, resolution / 8, 1);
+
+            erosionAndDecompositionShader.SetFloat("dTime", dTime);
+            erosionAndDecompositionShader.Dispatch(erosionAndDecompositionHandle, resolution / 8, resolution / 8, 1);
+
+            sedimentTransportAndEvaporationShader.SetFloat("dTime", dTime);
+            sedimentTransportAndEvaporationShader.Dispatch(sedimentTransportAndEvaporationHandle, resolution / 8, resolution / 8, 1);
         }
     }
 
@@ -137,7 +161,7 @@ public class ErosionEditor : Editor
 		RenderOffsetSliders();
 		RenderOctaveSliders();
 
-		perlinNoiseShader.Dispatch(pNKernelHandle, resolution / 8, resolution / 8, 1);
+		perlinNoiseShader.Dispatch(perlinNoiseHandle, resolution / 8, resolution / 8, 1);
 
 		rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", height);
 	}
@@ -148,7 +172,7 @@ public class ErosionEditor : Editor
         if(newRes != resolution)
 		{
             ResetHeight();
-            perlinNoiseShader.SetTexture(pNKernelHandle, "height", height);
+            perlinNoiseShader.SetTexture(perlinNoiseHandle, "height", height);
 
             resolution = newRes;
             perlinNoiseShader.SetInt("resolution", resolution);
@@ -225,7 +249,7 @@ public class ErosionEditor : Editor
 
     private void SetOctaves()
     {
-        perlinNoiseShader.SetBuffer(pNKernelHandle, "octaves", octavesComputeBuffer);
+        perlinNoiseShader.SetBuffer(perlinNoiseHandle, "octaves", octavesComputeBuffer);
         perlinNoiseShader.SetInt("octaveCount", octaves.Count);
     }
 
