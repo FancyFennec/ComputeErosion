@@ -7,7 +7,7 @@ RWTexture2D<float> sed;
 float dTime;
 int resolution;
 
-float Ke = 100.0;
+float Ke = 1.0;
 
 uint2 index(float x, float y);
 
@@ -15,7 +15,7 @@ uint2 index(float x, float y);
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
 	sed[id.xy] = sed[index(id.x - vel[id.xy].x * dTime, id.y - vel[id.xy].y * dTime)];
-	water[id.xy] = float2(water[id.xy].y * (1 - Ke * dTime), 0.0);
+	water[id.xy] = float2(max(0.0, water[id.xy].y * (1 - Ke * dTime)), 0.0);
 }
 
 uint2 index(float x, float y) {

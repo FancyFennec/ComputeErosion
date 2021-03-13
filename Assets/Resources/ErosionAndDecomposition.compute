@@ -35,8 +35,7 @@ float computeCapacity(uint3 id) {
 }
 
 float alpha(uint3 id) {
-	float a = 0.0;
-	a = max(a, abs(atan(height[uint2(id.x - 1, id.y)] - height[id.xy])));
+	float a = abs(atan(height[uint2(id.x - 1, id.y)] - height[id.xy]));
 	a = max(a, abs(atan(height[uint2(id.x + 1, id.y)] - height[id.xy])));
 	a = max(a, abs(atan(height[uint2(id.x, id.y + 1)] - height[id.xy])));
 	a = max(a, abs(atan(height[uint2(id.x, id.y - 1)] - height[id.xy])));

@@ -30,7 +30,7 @@ float4 computeDeltaH(uint3 id)
 
 float4 computeFlux(uint3 id, float4 dH)
 {
-    float c = 1000.0 * 9.81; // A * g / l
+    float c = 50.0 * 9.81; // A * g / l
     float4 zero = float4(0.0, 0.0, 0.0, 0.0);
     return max(zero, flux[id.xy] + dTime * c * dH);
 }
