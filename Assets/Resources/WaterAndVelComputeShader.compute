@@ -16,19 +16,21 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     water[id.xy] = float2(water[id.xy].x, water[id.xy].x + dV);
 
     float2 dW = computeDeltaW(id);
-    if (water[id.xy].x == 0.0 && water[id.xy].y == 0.0) {
-        vel[id.xy] = float2(0.0, 0.0);
-    } else {
+
+    vel[id.xy] = float2(0.0, 0.0);
+    if (water[id.xy].x != 0.0 && water[id.xy].y != 0.0) {
         float dMean = (water[id.xy].x + water[id.xy].y) / 2.0;
         vel[id.xy] =  dW / dMean;
     }
+    //TODO: remove this
+    water[id.xy] = float2(water[id.xy].y, 0.0);
 }
 
 float computeDeltaV(uint3 id) 
 {
-    float fIn = flux[uint2(id.x - 1, id.y)].y 
+    float fIn = flux[uint2(id.x + 1, id.y)].x
+              + flux[uint2(id.x - 1, id.y)].y 
               + flux[uint2(id.x, id.y - 1)].z 
-              + flux[uint2(id.x + 1, id.y)].x 
               + flux[uint2(id.x, id.y + 1)].w;
     float fOut = flux[id.xy].x + flux[id.xy].y + flux[id.xy].z + flux[id.xy].w;
     return dTime * (fIn - fOut);

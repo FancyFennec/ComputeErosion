@@ -7,16 +7,16 @@ RWTexture2D<float4> flux;
 float dTime;
 
 float4 computeDeltaH(uint3 id);
-void computeFlux(uint3 id, float4 dH);
-float computeScalingFactor(uint3 id);
+float4 computeFlux(uint3 id, float4 dH);
+float computeScalingFactor(uint3 id, float4 f);
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
     float4 dH = computeDeltaH(id);
-    computeFlux(id, dH);
-    float k = computeScalingFactor(id);
-    flux[id.xy] = k * flux[id.xy];
+    float4 f = computeFlux(id, dH);
+    float k = computeScalingFactor(id, f);
+    flux[id.xy] = k * f;
 }
 
 float4 computeDeltaH(uint3 id) 
@@ -28,15 +28,21 @@ float4 computeDeltaH(uint3 id)
     return float4(hL, hR, hT, hB);
 }
 
-void computeFlux(uint3 id, float4 dH)
+float4 computeFlux(uint3 id, float4 dH)
 {
-    float c = 9.81; // A * g / l
-    flux[id.xy] = max(float4(0.0, 0.0, 0.0, 0.0), flux[id.xy] + dTime * c * dH);
+    float c = 10.0 * 9.81; // A * g / l
+    float4 zero = float4(0.0, 0.0, 0.0, 0.0);
+    return max(zero, flux[id.xy] + dTime * c * dH);
 }
 
-float computeScalingFactor(uint3 id)
+float computeScalingFactor(uint3 id, float4 f)
 {
     float c = 1; // lx*ly
-    float4 f = flux[id.xy];
-    return min(1.0, water[id.xy].x * c / ((f.x + f.y + f.z + f.w) * dTime));
+    float fSum = f.x + f.y + f.z + f.w;
+    if (fSum == 0.0f) {
+        return 1.0;
+    }
+    else {
+        return min(1.0, water[id.xy].x * c / (fSum * dTime));
+    }
 }
