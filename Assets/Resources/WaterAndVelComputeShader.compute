@@ -12,7 +12,7 @@ float2 computeDeltaW(uint3 id);
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float area = 10.0f; // lx * ly
+    float area = 3.0f; // lx * ly
     float dV = computeDeltaV(id);
     water[id.xy] = float2(water[id.xy].x, water[id.xy].x + dV / area);
 
