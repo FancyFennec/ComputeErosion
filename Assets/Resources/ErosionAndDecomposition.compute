@@ -2,42 +2,51 @@
 
 RWTexture2D<float> height;
 RWTexture2D<float4> vel;
-RWTexture2D<float> sed;
+RWTexture2D<float2> water;
+RWTexture2D<float2> sed;
 
 float dTime;
 
-float Kc = 100000.0;
-float Ks = 10.0; 
-float Kd = 10.0;
-
 float computeCapacity(uint3 id);
-float alpha(uint3 id);
+float sinAlpha(uint3 id);
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
+	float Ks = 0.01;
+	float Kd = 0.01;
+
 	float C = computeCapacity(id);
 
-	if (C > sed[id.xy]) {
-		float disolvedSed = Ks * (C - sed[id.xy]);
-		height[id.xy] = height[id.xy] - disolvedSed;
-		sed[id.xy] = sed[id.xy] + disolvedSed;
+	if (C > sed[id.xy].x) {
+		float disolvedSed = Ks * (C - sed[id.xy].x);
+
+		float h = max(0.0, height[id.xy] - disolvedSed); //Shader graph doesn't like negative floats
+		float dH = height[id.xy] - h;
+
+		height[id.xy] = h;
+		sed[id.xy] = float2(sed[id.xy].x, sed[id.xy].x + dH);
 	}
 	else {
-		float depositedSed = Kd * (sed[id.xy] - C);
-		height[id.xy] = height[id.xy] + depositedSed;
-		sed[id.xy] = sed[id.xy] - depositedSed;
+		float depositedSed = Kd * (sed[id.xy].x - C);
+
+		float s = max(0.0, sed[id.xy].x - depositedSed); //Shader graph doesn't like negative floats
+		float dS = sed[id.xy].x - s;
+
+		height[id.xy] = height[id.xy] + dS;
+		sed[id.xy] = float2(sed[id.xy].x, s);
 	}
 }
 
 float computeCapacity(uint3 id) {
-	return Kc * sin(alpha(id)) * length(vel[id.xy]);
+	float Kc = 1.0;
+	return Kc * sinAlpha(id) * length(vel[id.xy]) * min(water[id.xy], 0.01);
 }
 
-float alpha(uint3 id) {
-	float a = abs(atan(height[uint2(id.x - 1, id.y)] - height[id.xy]));
-	a = max(a, abs(atan(height[uint2(id.x + 1, id.y)] - height[id.xy])));
-	a = max(a, abs(atan(height[uint2(id.x, id.y + 1)] - height[id.xy])));
-	a = max(a, abs(atan(height[uint2(id.x, id.y - 1)] - height[id.xy])));
-	return min(0.1, a);
+float sinAlpha(uint3 id) {
+	float3 up = float3(0.0, 0.0, 1.0);
+	float3 normal = float3(height[uint2(id.x + 1, id.y)] - height[uint2(id.x - 1, id.y)],
+							height[uint2(id.x, id.y + 1)] - height[uint2(id.x, id.y - 1)],
+							2.0);
+	return sin(acos(max(0.1, dot(normalize(normal), up))));
 }

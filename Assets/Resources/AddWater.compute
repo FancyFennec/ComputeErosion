@@ -8,7 +8,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float wX = water[id.xy].x;
     float wY = water[id.xy].y;
     if (length(int2(id.xy) - int2(512, 512)) < 40.0) {
-        wX = wX + 0.0001;
+        wX = wX + 0.0003;
     }
     water[id.xy] = float2(wX, wY);
 }

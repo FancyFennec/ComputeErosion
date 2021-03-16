@@ -4,6 +4,7 @@ RWTexture2D<float> height;
 RWTexture2D<float2> water;
 RWTexture2D<float4> flux;
 
+int resolution;
 float dTime;
 
 float4 computeDeltaH(uint3 id);
@@ -30,19 +31,19 @@ float4 computeDeltaH(uint3 id)
 
 float4 computeFlux(uint3 id, float4 dH)
 {
-    float c = 50.0 * 9.81; // A * g / l
+    float l = 1000.0 / resolution;
+    float A = 0.00005;
+    float c = A * 9.81 / l; // A * g / l
     float4 zero = float4(0.0, 0.0, 0.0, 0.0);
     return max(zero, flux[id.xy] + dTime * c * dH);
 }
 
 float computeScalingFactor(uint3 id, float4 f)
 {
-    float c = 1; // lx*ly
     float fSum = f.x + f.y + f.z + f.w;
-    if (fSum < 0.0f) {
+    if (fSum <= 0.0) {
         return 1.0;
     }
-    else {
-        return min(1.0, water[id.xy].x * c / (fSum * dTime));
-    }
+    float l = 1000.0 / ((float)resolution);
+    return min(1.0, water[id.xy].x * l * l / (fSum * dTime));
 }
