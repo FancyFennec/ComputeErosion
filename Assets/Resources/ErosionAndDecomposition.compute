@@ -1,7 +1,7 @@
 #pragma kernel CSMain
 
 RWTexture2D<float> height;
-RWTexture2D<float4> vel;
+RWTexture2D<float2> vel;
 RWTexture2D<float2> water;
 RWTexture2D<float2> sed;
 
@@ -21,32 +21,38 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	if (C > sed[id.xy].x) {
 		float disolvedSed = Ks * (C - sed[id.xy].x);
 
-		float h = max(0.0, height[id.xy] - disolvedSed); //Shader graph doesn't like negative floats
-		float dH = height[id.xy] - h;
+		disolvedSed = min(disolvedSed, height[id.xy]); //Shader graph doesn't like negative floats
 
-		height[id.xy] = h;
-		sed[id.xy] = float2(sed[id.xy].x, sed[id.xy].x + dH);
+		height[id.xy] = height[id.xy] - disolvedSed;
+		water[id.xy] = float2(water[id.xy].x, water[id.xy].y + disolvedSed);
+		sed[id.xy] = float2(sed[id.xy].x, sed[id.xy].x + disolvedSed);
 	}
 	else {
 		float depositedSed = Kd * (sed[id.xy].x - C);
+		depositedSed = min(depositedSed, water[id.xy].y); //Shader graph doesn't like negative floats
+		depositedSed = min(depositedSed, sed[id.xy].x);
 
-		float s = max(0.0, sed[id.xy].x - depositedSed); //Shader graph doesn't like negative floats
-		float dS = sed[id.xy].x - s;
-
-		height[id.xy] = height[id.xy] + dS;
-		sed[id.xy] = float2(sed[id.xy].x, s);
+		height[id.xy] = height[id.xy] + depositedSed;
+		water[id.xy] = float2(water[id.xy].x, water[id.xy].y - depositedSed);
+		sed[id.xy] = float2(sed[id.xy].x, sed[id.xy].x - depositedSed);
 	}
 }
 
 float computeCapacity(uint3 id) {
-	float Kc = 1.0;
-	return Kc * sinAlpha(id) * length(vel[id.xy]) * min(water[id.xy], 0.01);
+	//float Kc = 0.0;
+	float Kc = 0.9;
+	return Kc * sinAlpha(id) * length(vel[id.xy]) * 100 * min(water[id.xy], 0.01);
 }
 
 float sinAlpha(uint3 id) {
 	float3 up = float3(0.0, 0.0, 1.0);
-	float3 normal = float3(height[uint2(id.x + 1, id.y)] - height[uint2(id.x - 1, id.y)],
-							height[uint2(id.x, id.y + 1)] - height[uint2(id.x, id.y - 1)],
-							2.0);
-	return sin(acos(max(0.1, dot(normalize(normal), up))));
+	float3 normal = float3(height[uint2(id.x + 1, id.y)] + water[uint2(id.x + 1, id.y)].y
+		- height[uint2(id.x - 1, id.y)] - water[uint2(id.x - 1, id.y)].y,
+		height[uint2(id.x, id.y + 1)] + water[uint2(id.x, id.y + 1)].y
+		- height[uint2(id.x, id.y - 1)] - water[uint2(id.x, id.y - 1)].y,
+		2.0);
+	//float3 normal = float3(height[uint2(id.x + 1, id.y)] - height[uint2(id.x - 1, id.y)],
+	//						height[uint2(id.x, id.y + 1)] - height[uint2(id.x, id.y - 1)],
+	//						2.0);
+	return max(0.01, sin(acos(dot(normalize(normal), up))));
 }

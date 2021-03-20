@@ -40,10 +40,13 @@ float4 computeFlux(uint3 id, float4 dH)
 
 float computeScalingFactor(uint3 id, float4 f)
 {
-    float fSum = f.x + f.y + f.z + f.w;
-    if (fSum <= 0.0) {
+    float l = 1000.0 / ((float) resolution);
+    float vOut = dTime * (f.x + f.y + f.z + f.w);
+    float waterAmmount = l * l * water[id.xy].x;
+    if (vOut <= waterAmmount) {
         return 1.0;
     }
-    float l = 1000.0 / ((float)resolution);
-    return min(1.0, water[id.xy].x * l * l / (fSum * dTime));
+    else {
+        return waterAmmount / vOut;
+    }
 }
