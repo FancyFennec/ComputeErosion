@@ -40,8 +40,8 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 }
 
 float computeCapacity(uint3 id) {
-	//float Kc = 0.0;
-	float Kc = 3.9;
+	float Kc = 0.0;
+	//float Kc = 3.9;
 	return Kc * sinAlpha(id) * length(vel[id.xy]) * 100 * min(water[id.xy], 0.01);
 }
 
@@ -55,5 +55,5 @@ float sinAlpha(uint3 id) {
 	//float3 normal = float3(height[uint2(id.x + 1, id.y)] - height[uint2(id.x - 1, id.y)],
 	//						height[uint2(id.x, id.y + 1)] - height[uint2(id.x, id.y - 1)],
 	//						2.0);
-	return max(0.01, sin(acos(dot(normalize(normal), up))));
+	return max(0.05, sin(acos(dot(normalize(normal), up))));
 }

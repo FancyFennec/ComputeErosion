@@ -4,11 +4,13 @@ RWTexture2D<float> height;
 RWTexture2D<float2> water;
 RWTexture2D<float2> vel;
 RWTexture2D<float2> sed;
+RWTexture2D<float4> terrainFlux;
 
 int resolution;
 float dTime;
 
 float computeSedimentTransport(uint3 id);
+float4 computeTerrainFlux(uint3 id);
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
@@ -18,6 +20,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float s = computeSedimentTransport(id);
 	sed[id.xy] = float2(s, sed[id.xy].y);
 	water[id.xy] = float2(max(0.0, water[id.xy].y * (1.0 - Ke * dTime)), 0.0);
+    terrainFlux[id.xy] = computeTerrainFlux(id);
 }
 
 float computeSedimentTransport(uint3 id) {
@@ -41,5 +44,38 @@ float computeSedimentTransport(uint3 id) {
         lerp(sed[uint2(x0, y0)].y, sed[uint2(x1, y0)].y, fX),
         lerp(sed[uint2(x0, y1)].y, sed[uint2(x1, y1)].y, fX)
         , fY);
+}
+
+float4 computeTerrainFlux(uint3 id)
+{
+    float threshold = 0.01;
+    float scalingFactor = dTime * 0.0001;
+
+    float hL = 0.0;
+    if (id.x > 0) { 
+        hL = height[id.xy] - height[uint2(id.x - 1, id.y)];
+    }
+
+    float hR = 0.0;
+    if (id.x < resolution - 1) {
+        hR = height[id.xy] - height[uint2(id.x + 1, id.y)];
+    }
+
+    float hT = 0.0;
+    if (id.y < resolution - 1) {
+        hT = height[id.xy] - height[uint2(id.x, id.y + 1)];
+    }
+
+    float hB = 0.0;
+    if (id.y > 0) {
+        hB = height[id.xy] - height[uint2(id.x, id.y - 1)];
+    }
+
+    if (hL < threshold) { hL = 0.0; }
+    if (hR < threshold) { hR = 0.0; }
+    if (hT < threshold) { hT = 0.0; }
+    if (hB < threshold) { hB = 0.0; }
+
+    return float4(hL, hR, hT, hB) * scalingFactor;
 }
  

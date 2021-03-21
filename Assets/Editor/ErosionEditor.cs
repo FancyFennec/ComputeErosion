@@ -28,6 +28,7 @@ public class ErosionEditor : Editor
     ErosionShader addWaterShader;
     ErosionShader erosionAndDecompositionShader;
     ErosionShader sedimentTransportAndEvaporationShader;
+    ErosionShader materialTransportShader;
 
     int perlinNoiseHandle;
 
@@ -37,6 +38,7 @@ public class ErosionEditor : Editor
     KeyValuePair<string, RenderTexture> water;
     KeyValuePair<string, RenderTexture> sediment;
     KeyValuePair<string, RenderTexture> flux;
+    KeyValuePair<string, RenderTexture> terrainFlux;
     KeyValuePair<string, RenderTexture> vel;
 
     List<Octave> octaves = new List<Octave>() { new Octave(1f, 1f) };
@@ -83,6 +85,9 @@ public class ErosionEditor : Editor
 
             sedimentTransportAndEvaporationShader.SetFloat("dTime", dTime);
             sedimentTransportAndEvaporationShader.Dispatch();
+
+            materialTransportShader.SetFloat("dTime", dTime);
+            materialTransportShader.Dispatch();
         }
     }
 
@@ -102,7 +107,10 @@ public class ErosionEditor : Editor
 		if (editingTerrain)
 		{
 			RenderTerrainEditor();
-        }
+        } else
+		{
+            // TODO: add erosion control
+		}
 	}
 
     private void SetPerlinNoiseShaderValues()
@@ -119,6 +127,7 @@ public class ErosionEditor : Editor
     {
         InitialiseWater();
         InitialiseFlux();
+        InitialiseTerrainFlux();
         InitialiseVel();
         InitialiseSediment();
     }
@@ -132,7 +141,8 @@ public class ErosionEditor : Editor
         fluxShader = new ErosionShader("Flux", resolution, height, water, flux);
         waterAndVelocityShader = new ErosionShader("WaterAndVelocity", resolution, water, flux, vel);
         erosionAndDecompositionShader = new ErosionShader("ErosionAndDecomposition", resolution, height, water, vel, sediment);
-        sedimentTransportAndEvaporationShader = new ErosionShader("SedimentTransportationAndEvaporation", resolution, height, water, vel, sediment);
+        sedimentTransportAndEvaporationShader = new ErosionShader("SedimentTransportationAndEvaporation", resolution, height, terrainFlux, water, vel, sediment);
+        materialTransportShader = new ErosionShader("MaterialTransport", resolution, height, terrainFlux);
     }
 
     private void SetRenderShaderTextures()
@@ -289,6 +299,18 @@ public class ErosionEditor : Editor
         else
         {
             flux = InitialiseTexture("flux", RenderTextureFormat.ARGBFloat);
+        }
+    }
+
+    private void InitialiseTerrainFlux()
+    {
+        if (!default(KeyValuePair<string, RenderTexture>).Equals(terrainFlux))
+        {
+            ClearTexture(terrainFlux.Value);
+        }
+        else
+        {
+            terrainFlux = InitialiseTexture("terrainFlux", RenderTextureFormat.ARGBFloat);
         }
     }
 

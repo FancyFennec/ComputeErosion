@@ -1,0 +1,19 @@
+#pragma kernel CSMain
+
+RWTexture2D<float> height;
+RWTexture2D<float4> terrainFlux;
+
+int resolution;
+float dTime;
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    float fIn = terrainFlux[uint2(id.x + 1, id.y)].x
+        + terrainFlux[uint2(id.x - 1, id.y)].y
+        + terrainFlux[uint2(id.x, id.y - 1)].z
+        + terrainFlux[uint2(id.x, id.y + 1)].w;
+    float fOut = terrainFlux[id.xy].x + terrainFlux[id.xy].y + terrainFlux[id.xy].z + terrainFlux[id.xy].w;
+
+    height[id.xy] = height[id.xy] + fIn - fOut;
+}
