@@ -40,7 +40,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 float computeCapacity(uint3 id) {
 	//float Kc = 0.0;
-	float Kc = 0.9;
+	float Kc = 3.9;
 	return Kc * sinAlpha(id) * length(vel[id.xy]) * 100 * min(water[id.xy], 0.01);
 }
 

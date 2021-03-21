@@ -2,14 +2,36 @@
 
 RWTexture2D<float2> water;
 
+float time;
+
+float2 addSpring(uint3 id, int2 source, float radius);
+float2 addRain(uint3 id);
+float random(float2 uv);
+
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float wX = water[id.xy].x;
-    float wY = water[id.xy].y;
-    if (length(int2(id.xy) - int2(512, 512)) < 40.0) {
-        wX = wX + 0.0003;
-    }
-    water[id.xy] = float2(wX, wY);
+    water[id.xy] = addSpring(id, int2(512, 512), 40.0);
+    //water[id.xy] = addRain(id);
 }
 
+float2 addSpring(uint3 id, int2 source, float radius) {
+    float w = water[id.xy].x;
+    if (length(int2(id.xy) - source) < radius) {
+        w = w + 0.0003;
+    }
+    return float2(w, water[id.xy].y);
+}
+
+float2 addRain(uint3 id) {
+    float w = water[id.xy].x;
+    if (random(time * float2(id.xy)) > 0.95) {
+        w = w + 0.00003;
+    }
+    return float2(w, water[id.xy].y);
+}
+
+float random(float2 uv)
+{
+    return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453123);
+}

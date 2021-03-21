@@ -123,6 +123,7 @@ public class ErosionEditor : Editor
                 erosionAndDecompositionShader.SetTexture(erosionAndDecompositionHandle, "water", water);
                 erosionAndDecompositionShader.SetTexture(erosionAndDecompositionHandle, "sed", sediment);
 
+                sedimentTransportAndEvaporationShader.SetTexture(sedimentTransportAndEvaporationHandle, "height", height);
                 sedimentTransportAndEvaporationShader.SetTexture(sedimentTransportAndEvaporationHandle, "water", water);
                 sedimentTransportAndEvaporationShader.SetTexture(sedimentTransportAndEvaporationHandle, "vel", vel);
                 sedimentTransportAndEvaporationShader.SetTexture(sedimentTransportAndEvaporationHandle, "sed", sediment);
@@ -131,6 +132,7 @@ public class ErosionEditor : Editor
                 rend.sharedMaterial.SetTexture("Texture2D_6e077698234c43b5858f766869fb4614", water);
             }
 
+            addWaterShader.SetFloat("time", ((float)EditorApplication.timeSinceStartup % 10));
             addWaterShader.Dispatch(addWaterHandle, resolution / 8, resolution / 8, 1);
 
             fluxShader.SetFloat("dTime", dTime);

@@ -1,5 +1,6 @@
 #pragma kernel CSMain
 
+RWTexture2D<float> height;
 RWTexture2D<float2> water;
 RWTexture2D<float2> vel;
 RWTexture2D<float2> sed;
@@ -21,20 +22,16 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 float computeSedimentTransport(uint3 id) {
 
-    // position where flow comes from
     float2 fromPos = float2(id.x, id.y) - vel[id.xy] * dTime;
      
-    // integer coordinates
     int x0 = floor(fromPos.x);
     int y0 = floor(fromPos.y);
     int x1 = x0 + 1;
     int y1 = y0 + 1;
 
-    // interpolation factors
     float fX = fromPos.x - x0;
     float fY = fromPos.y - y0;
 
-    // clamp to grid borders
     x0 = clamp(x0, 0, resolution - 1);
     x1 = clamp(x1, 0, resolution - 1);
     y0 = clamp(y0, 0, resolution - 1);
@@ -45,3 +42,4 @@ float computeSedimentTransport(uint3 id) {
         lerp(sed[uint2(x0, y1)].y, sed[uint2(x1, y1)].y, fX)
         , fY);
 }
+ 
