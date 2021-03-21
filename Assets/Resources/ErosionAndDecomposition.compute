@@ -5,6 +5,7 @@ RWTexture2D<float2> vel;
 RWTexture2D<float2> water;
 RWTexture2D<float2> sed;
 
+int resolution;
 float dTime;
 
 float computeCapacity(uint3 id);

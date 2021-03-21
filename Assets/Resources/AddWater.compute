@@ -2,6 +2,7 @@
 
 RWTexture2D<float2> water;
 
+int resolution;
 float time;
 
 float2 addSpring(uint3 id, int2 source, float radius);
@@ -11,7 +12,7 @@ float random(float2 uv);
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    water[id.xy] = addSpring(id, int2(512, 512), 40.0);
+    water[id.xy] = addSpring(id, int2(resolution / 2, resolution / 2), resolution / 1024.0 * 40.0);
     //water[id.xy] = addRain(id);
 }
 
