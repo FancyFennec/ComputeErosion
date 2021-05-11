@@ -10,6 +10,8 @@ float dTime;
 
 float computeCapacity(uint3 id);
 float sinAlpha(uint3 id);
+float3 computeNormal(uint3 id);
+float3 computeNormalWithWater(uint3 id);
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
@@ -40,20 +42,26 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 }
 
 float computeCapacity(uint3 id) {
-	float Kc = 0.0;
-	//float Kc = 3.9;
+	//float Kc = 0.0;
+	float Kc = 1.9;
 	return Kc * sinAlpha(id) * length(vel[id.xy]) * 100 * min(water[id.xy], 0.01);
 }
 
 float sinAlpha(uint3 id) {
 	float3 up = float3(0.0, 0.0, 1.0);
-	float3 normal = float3(height[uint2(id.x + 1, id.y)] + water[uint2(id.x + 1, id.y)].y
-		- height[uint2(id.x - 1, id.y)] - water[uint2(id.x - 1, id.y)].y,
-		height[uint2(id.x, id.y + 1)] + water[uint2(id.x, id.y + 1)].y
-		- height[uint2(id.x, id.y - 1)] - water[uint2(id.x, id.y - 1)].y,
-		2.0);
-	//float3 normal = float3(height[uint2(id.x + 1, id.y)] - height[uint2(id.x - 1, id.y)],
-	//						height[uint2(id.x, id.y + 1)] - height[uint2(id.x, id.y - 1)],
-	//						2.0);
+	float3 normal = computeNormal(id);
+	//float3 normal = computeNormalWithWater(id);
 	return max(0.05, sin(acos(dot(normalize(normal), up))));
+}
+
+float3 computeNormal(uint3 id) {
+	return float3(height[uint2(id.x + 1, id.y)] - height[uint2(id.x - 1, id.y)],
+		height[uint2(id.x, id.y + 1)] - height[uint2(id.x, id.y - 1)],
+		2.0);
+}
+
+float3 computeNormalWithWater(uint3 id) {
+	return float3(height[uint2(id.x + 1, id.y)] + water[uint2(id.x + 1, id.y)].y - height[uint2(id.x - 1, id.y)] - water[uint2(id.x - 1, id.y)].y,
+		height[uint2(id.x, id.y + 1)] + water[uint2(id.x, id.y + 1)].y - height[uint2(id.x, id.y - 1)] - water[uint2(id.x, id.y - 1)].y,
+		2.0);
 }

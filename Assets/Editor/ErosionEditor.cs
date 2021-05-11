@@ -48,12 +48,10 @@ public class ErosionEditor : Editor
     float xOffset = 0f;
     float yOffset = 0f;
 
-    float dTime = 0f;
-    float lastTime = 0f;
+    float dTime = 1000.0f / 60f;
 
     private void OnEnable()
 	{
-		lastTime = (float)EditorApplication.timeSinceStartup;
 		terrain = (ErodingTerrain)target;
 
 		InitialiseHeight();
@@ -67,8 +65,6 @@ public class ErosionEditor : Editor
 
 	private void OnSceneGUI()
     {
-        UpdateDTime();
-
         if (!editingTerrain)
         {
             addWaterShader.SetFloat("time", ((float)EditorApplication.timeSinceStartup % 10));
@@ -256,14 +252,6 @@ public class ErosionEditor : Editor
     {
         perlinNoiseShader.SetFloat("xOffset", xOffset);
         perlinNoiseShader.SetFloat("yOffset", yOffset);
-    }
-
-    private void UpdateDTime()
-    {
-		float currentTime = (float) EditorApplication.timeSinceStartup;
-		//dTime = currentTime - lastTime;
-        dTime = 1000.0f / 60f;
-        lastTime = currentTime;
     }
 
     private void InitialiseHeight()
