@@ -5,15 +5,66 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
+public class ErosionShaderBuilder : ErosionShader
+{
+	private string name;
+	public ErosionShaderBuilder()
+	{
+		textures = new List<KeyValuePair<String, RenderTexture>>();
+		ints = new List<KeyValuePair<String, int>>();
+		floats = new List<KeyValuePair<String, float>>();
+	}
+	public ErosionShaderBuilder withResolution(int resolution)
+	{
+		this.resolution = resolution;
+		return this;
+	}
+	public ErosionShaderBuilder withName(string name)
+	{
+		this.name = name;
+		return this;
+	}
+	public ErosionShaderBuilder withInt(string key, int value)
+	{
+		ints.Add(new KeyValuePair<string, int>(key, value));
+		return this;
+	}
+
+	public ErosionShaderBuilder withFloat(string key, float value)
+	{
+		floats.Add(new KeyValuePair<string, float>(key, value));
+		return this;
+	}
+
+	public ErosionShaderBuilder withTexture(string key, RenderTexture value)
+	{
+		textures.Add(new KeyValuePair<string, RenderTexture>(key, value));
+		return this;
+	}
+
+	public ErosionShaderBuilder withTexture(KeyValuePair<string, RenderTexture> texture)
+	{
+		textures.Add(texture);
+		return this;
+	}
+
+	public ErosionShader build()
+	{
+		return new ErosionShader(name, resolution, textures, ints, floats);
+	}
+}
+
 public class ErosionShader
 {
-	readonly ComputeShader shader;
-	readonly int resolution;
-	readonly List<KeyValuePair<String, RenderTexture>> textures;
-	readonly List<KeyValuePair<String, int>> ints;
-	readonly List<KeyValuePair<String, float>> floats;
-	
+	protected ComputeShader shader;
+	protected int resolution;
+	protected List<KeyValuePair<string, RenderTexture>> textures;
+	protected List<KeyValuePair<string, int>> ints;
+	protected List<KeyValuePair<string, float>> floats;
+
 	int handle;
+
+	public ErosionShader() { }
 
 	public ErosionShader(
 		string shaderName,
@@ -23,9 +74,22 @@ public class ErosionShader
 		shader = (ComputeShader)Resources.Load(shaderName);
 		this.resolution = resolution;
 		handle = shader.FindKernel("CSMain");
-		this.textures = new List < KeyValuePair < String, RenderTexture >> (textures);
-		this.ints = new List<KeyValuePair<String, int>>() { new KeyValuePair<String, int>("resolution", resolution)};
-		this.floats = new List<KeyValuePair<String, float>>();
+		this.textures = new List<KeyValuePair<string, RenderTexture>>(textures);
+		this.ints = new List<KeyValuePair<string, int>>() { new KeyValuePair<string, int>("resolution", resolution) };
+		this.floats = new List<KeyValuePair<string, float>>();
+
+		Initialise();
+	}
+
+	public ErosionShader(
+		string shaderName,
+		int resolution,
+		List<KeyValuePair<String, RenderTexture>> textures,
+		List<KeyValuePair<String, int>> ints,
+		List<KeyValuePair<String, float>> floats) : this(shaderName, resolution, textures.ToArray())
+	{
+		this.ints.AddRange(new List<KeyValuePair<string, int>>(ints));
+		this.floats.AddRange(new List<KeyValuePair<string, float>>(floats));
 
 		Initialise();
 	}
