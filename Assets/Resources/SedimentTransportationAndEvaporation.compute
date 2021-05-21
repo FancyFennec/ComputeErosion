@@ -8,6 +8,7 @@ RWTexture2D<float4> terrainFlux;
 
 int resolution;
 float dTime;
+float Ke;
 
 float computeSedimentTransport(uint3 id);
 float4 computeTerrainFlux(uint3 id);
@@ -15,8 +16,6 @@ float4 computeTerrainFlux(uint3 id);
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-	float Ke = 0.00003;
-
     float s = computeSedimentTransport(id);
 	sed[id.xy] = float2(s, sed[id.xy].y);
 	water[id.xy] = float2(max(0.0, water[id.xy].y * (1.0 - Ke * dTime)), 0.0);

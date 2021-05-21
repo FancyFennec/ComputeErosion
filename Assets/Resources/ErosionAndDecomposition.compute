@@ -8,6 +8,10 @@ RWTexture2D<float2> sed;
 int resolution;
 float dTime;
 
+float Ks;
+float Kd;
+float Kc;
+
 float computeCapacity(uint3 id);
 float sinAlpha(uint3 id);
 float3 computeNormal(uint3 id);
@@ -16,9 +20,6 @@ float3 computeNormalWithWater(uint3 id);
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-	float Ks = 0.01;
-	float Kd = 0.01;
-
 	float C = computeCapacity(id);
 
 	if (C > sed[id.xy].x) {
@@ -42,8 +43,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 }
 
 float computeCapacity(uint3 id) {
-	//float Kc = 0.0;
-	float Kc = 1.9;
 	return Kc * sinAlpha(id) * length(vel[id.xy]) * 100 * min(water[id.xy], 0.01);
 }
 

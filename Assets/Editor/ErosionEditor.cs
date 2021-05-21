@@ -48,6 +48,13 @@ public class ErosionEditor : Editor
     float xOffset = 0f;
     float yOffset = 0f;
 
+    KeyValuePair<string, float> waterIncrease = new KeyValuePair<string, float>("waterIncrease", 0.0003f);
+    KeyValuePair<string, float> evaporationConstant = new KeyValuePair<string, float>("Ke", 0.00003f);
+
+    KeyValuePair<string, float> capacityConstant = new KeyValuePair<string, float>("Kc", 1.9f);
+    KeyValuePair<string, float> sedimentConstant = new KeyValuePair<string, float>("Ks", 0.01f);
+    KeyValuePair<string, float> depositionConstant = new KeyValuePair<string, float>("Kd", 0.01f);
+
     float dTime = 1000.0f / 60f;
 
     private void OnEnable()
@@ -106,7 +113,45 @@ public class ErosionEditor : Editor
         } else
 		{
             // TODO: add erosion control
-		}
+            GUILayout.Label("Water Control");
+            GUILayout.Label("Water Increase");
+            float newWaterIncrease = EditorGUILayout.Slider(waterIncrease.Value, 0f, 0.005f);
+            if (waterIncrease.Value != newWaterIncrease)
+            {
+                waterIncrease = new KeyValuePair<string, float>(waterIncrease.Key, newWaterIncrease);
+                addWaterShader.SetFloat(waterIncrease);
+            }
+            GUILayout.Label("Evaporation");
+            float newKe = EditorGUILayout.Slider(evaporationConstant.Value, 0.0000001f, 0.001f);
+            if(evaporationConstant.Value != newKe)
+			{
+                evaporationConstant = new KeyValuePair<string, float>(evaporationConstant.Key, newKe);
+                sedimentTransportAndEvaporationShader.SetFloat(evaporationConstant);
+            }
+            GUILayout.Label("Erosion Control");
+            GUILayout.Label("Capacity");
+            float newCapacity = EditorGUILayout.Slider(capacityConstant.Value, 0.0000001f, 3f);
+            if (capacityConstant.Value != newCapacity)
+            {
+                capacityConstant = new KeyValuePair<string, float>(capacityConstant.Key, newCapacity);
+                erosionAndDecompositionShader.SetFloat(capacityConstant);
+            }
+            GUILayout.Label("Sediment Capacity");
+            float newSedimentCapacity = EditorGUILayout.Slider(sedimentConstant.Value, 0.0000001f, 0.1f);
+            if (sedimentConstant.Value != newSedimentCapacity)
+            {
+                sedimentConstant = new KeyValuePair<string, float>(sedimentConstant.Key, newSedimentCapacity);
+                erosionAndDecompositionShader.SetFloat(sedimentConstant);
+            }
+            GUILayout.Label("Decomposition Capacity");
+            float newDepositionCapacity = EditorGUILayout.Slider(depositionConstant.Value, 0.0000001f, 0.1f);
+            if (depositionConstant.Value != newDepositionCapacity)
+            {
+                depositionConstant = new KeyValuePair<string, float>(depositionConstant.Key, newDepositionCapacity);
+                erosionAndDecompositionShader.SetFloat(depositionConstant);
+            }
+            
+        }
 	}
 
     private void SetPerlinNoiseShaderValues()
@@ -135,6 +180,7 @@ public class ErosionEditor : Editor
 
         addWaterShader = new ErosionShaderBuilder().withName("AddWater").withResolution(resolution)
             .withTexture(water)
+            .withFloat(waterIncrease)
             .build();
         fluxShader = new ErosionShaderBuilder().withName("Flux").withResolution(resolution)
             .withTexture(height)
@@ -151,6 +197,9 @@ public class ErosionEditor : Editor
            .withTexture(water)
            .withTexture(vel)
            .withTexture(sediment)
+           .withFloat(capacityConstant)
+           .withFloat(sedimentConstant)
+           .withFloat(depositionConstant)
            .build();
         sedimentTransportAndEvaporationShader = new ErosionShaderBuilder().withName("SedimentTransportationAndEvaporation").withResolution(resolution)
             .withTexture(height)
@@ -158,6 +207,7 @@ public class ErosionEditor : Editor
            .withTexture(vel)
            .withTexture(sediment)
            .withTexture(terrainFlux)
+           .withFloat(evaporationConstant)
            .build();
         materialTransportShader = new ErosionShaderBuilder().withName("MaterialTransport").withResolution(resolution)
             .withTexture(height)

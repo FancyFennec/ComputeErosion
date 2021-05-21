@@ -24,22 +24,32 @@ public class ErosionShaderBuilder : ErosionShader
 		this.name = name;
 		return this;
 	}
+
 	public ErosionShaderBuilder withInt(string key, int value)
 	{
-		ints.Add(new KeyValuePair<string, int>(key, value));
+		return withInt(new KeyValuePair<string, int>(key, value));
+	}
+
+	public ErosionShaderBuilder withInt(KeyValuePair<string, int> value)
+	{
+		ints.Add(value);
 		return this;
 	}
 
 	public ErosionShaderBuilder withFloat(string key, float value)
 	{
-		floats.Add(new KeyValuePair<string, float>(key, value));
+		return withFloat(new KeyValuePair<string, float>(key, value));
+	}
+
+	public ErosionShaderBuilder withFloat(KeyValuePair<string, float> value)
+	{
+		floats.Add(value);
 		return this;
 	}
 
 	public ErosionShaderBuilder withTexture(string key, RenderTexture value)
 	{
-		textures.Add(new KeyValuePair<string, RenderTexture>(key, value));
-		return this;
+		return withTexture(new KeyValuePair<string, RenderTexture>(key, value));
 	}
 
 	public ErosionShaderBuilder withTexture(KeyValuePair<string, RenderTexture> texture)
@@ -114,12 +124,14 @@ public class ErosionShader
 		shader.SetInt(key, value);
 	}
 
+	public void SetInt(KeyValuePair<string, int> pair)
+	{
+		shader.SetInt(pair.Key, pair.Value);
+	}
+
 	public void SetInts()
 	{
-		ints.ForEach(numb =>
-		{
-			shader.SetInt(numb.Key, numb.Value);
-		});
+		ints.ForEach(SetInt);
 	}
 
 	public void SetFloat(string key, float value)
@@ -127,12 +139,14 @@ public class ErosionShader
 		shader.SetFloat(key, value);
 	}
 
+	public void SetFloat(KeyValuePair<string, float> pair)
+	{
+		shader.SetFloat(pair.Key, pair.Value);
+	}
+
 	public void SetFloats()
 	{
-		floats.ForEach(numb =>
-		{
-			shader.SetFloat(numb.Key, numb.Value);
-		});
+		floats.ForEach(SetFloat);
 	}
 
 	public void Dispatch()
