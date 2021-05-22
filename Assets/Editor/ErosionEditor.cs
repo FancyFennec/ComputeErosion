@@ -67,6 +67,7 @@ public class ErosionEditor : Editor
 		InitialiseShaders();
 
 		SetPerlinNoiseShaderValues();
+
 		SetRenderShaderTextures();
 	}
 

@@ -60,7 +60,12 @@ public class ErosionShaderBuilder : ErosionShader
 
 	public ErosionShader build()
 	{
-		return new ErosionShader(name, resolution, textures, ints, floats);
+		ErosionShader erosionShader = new ErosionShader(name, resolution, textures, ints, floats);
+		erosionShader.SetFloats();
+		erosionShader.SetInts();
+		erosionShader.SetTextures();
+		erosionShader.Dispatch();
+		return erosionShader;
 	}
 }
 
