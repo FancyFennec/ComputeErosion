@@ -1,4 +1,5 @@
 #pragma kernel CSMain
+#include <helpers.h>
 
 RWTexture2D<float> height;
 RWTexture2D<float4> terrainFlux;
@@ -19,11 +20,15 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         fOut = terrainFlux[id.xy].z;
     }
 
-    for (int i = -1; i < 2; i++) {
-        for (int j = -1; j <2; j++) {
-            if ((i != 0 || j != 0) && flowsInside(i, j, id)) {
-                fIn = fIn + terrainFlux[uint2(id.x + i, id.y + j)].z;
-            }
+	if (isInside(id, resolution))
+	{
+        for (int i = -1; i < 2; i++) {
+            for (int j = -1; j <2; j++) {
+				if ((i != 0 || j != 0) && flowsInside(i, j, id))
+				{
+					fIn = fIn + terrainFlux[uint2(id.x + i, id.y + j)].z;
+				}
+			}
         }
     }
 
@@ -33,3 +38,4 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 bool flowsInside(int i, int j, uint3 id) {
     return terrainFlux[uint2(id.x + i, id.y + j)].x + i == 0.0 && terrainFlux[uint2(id.x + i, id.y + j)].y + j == 0.0;
 }
+

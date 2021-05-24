@@ -54,8 +54,8 @@ float sinAlpha(uint3 id) {
 }
 
 float3 computeNormal(uint3 id) {
-	return float3(height[uint2(id.x + 1, id.y)] - height[uint2(id.x - 1, id.y)],
-		height[uint2(id.x, id.y + 1)] - height[uint2(id.x, id.y - 1)],
+	return float3(height[uint2(clamp(id.x + 1, 0.0, resolution - 1), id.y)] - height[uint2(clamp(id.x - 1, 0.0, resolution - 1), id.y)],
+		height[uint2(id.x, clamp(id.y + 1, 0.0, resolution - 1))] - height[uint2(id.x, clamp(id.y - 1, 0.0, resolution - 1))],
 		2.0);
 }
 

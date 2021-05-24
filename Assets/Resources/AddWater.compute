@@ -27,7 +27,8 @@ float2 addSpring(uint3 id, int2 source, float radius) {
 
 float2 addRain(uint3 id) {
     float w = water[id.xy].x;
-    if (random(time * float2(id.xy)) > 0.99) {
+	//w = w + waterIncrease;
+    if (random(time * float2(id.xy)) > 0.97) {
 		w = w + waterIncrease;
 	}
     return float2(w, water[id.xy].y);

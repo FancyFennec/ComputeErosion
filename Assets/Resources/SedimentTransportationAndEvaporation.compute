@@ -1,4 +1,5 @@
 #pragma kernel CSMain
+#include <helpers.h>
 
 RWTexture2D<float> height;
 RWTexture2D<float2> water;
@@ -56,26 +57,34 @@ float4 computeTerrainFlux(uint3 id)
     int xDir = 0;
     int yDir = 0;
 
-    for (int i = -1; i < 2; i++) {
-        for (int j = 0; j < 2; j++) {
-            if (i + j >= 0 && (i != 0 || j != 0)) {
-                float hPos = height[id.xy] - height[uint2(id.x + i, id.y + j)];
-                float hNeg = height[id.xy] - height[uint2(id.x - i, id.y - j)];
-                newCurvature = max(0.0, hPos + hNeg);
+	if (isInside(id, resolution))
+	{
+        for (int i = -1; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                if (i + j >= 0 && (i != 0 || j != 0)) {
+	    			float hPos = 0.0;
+	    			float hNeg = 0.0;
+					hPos = height[id.xy] - height[uint2(id.x + i, id.y + j)];
+					hNeg = height[id.xy] - height[uint2(id.x - i, id.y - j)];
+					newCurvature = max(0.0, hPos + hNeg);
 
-                if (newCurvature > threshold && newCurvature > maxCurvature) {
-                    if (hPos > hNeg) {
-                        xDir = i;
-                        yDir = j;
-                    }
-                    else {
-                        xDir = -i;
-                        yDir = -j;
-                    }
-                    maxCurvature = newCurvature;
-                }
-            }
-        }
+					if (newCurvature > threshold && newCurvature > maxCurvature)
+					{
+						if (hPos > hNeg)
+						{
+							xDir = i;
+							yDir = j;
+						}
+						else
+						{
+							xDir = -i;
+							yDir = -j;
+						}
+						maxCurvature = newCurvature;
+					}
+				}
+			}
+		}
     }
 
     return float4(xDir, yDir, maxCurvature * scalingFactor, 0.0);
