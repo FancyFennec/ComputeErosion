@@ -47,34 +47,37 @@ float computeSedimentTransport(uint3 id) {
 
 float4 computeTerrainFlux(uint3 id)
 {
-    float threshold = 0.01;
-    float scalingFactor = dTime * 0.0001;
+    float threshold = 0.005;
+    float scalingFactor = dTime * 0.001;
 
-    float hL = 0.0;
-    if (id.x > 0) { 
-        hL = height[id.xy] - height[uint2(id.x - 1, id.y)];
+    float maxCurvature = 0.0;
+    float newCurvature = 0.0;
+
+    int xDir = 0;
+    int yDir = 0;
+
+    for (int i = -1; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            if (i + j >= 0 && (i != 0 || j != 0)) {
+                float hPos = height[id.xy] - height[uint2(id.x + i, id.y + j)];
+                float hNeg = height[id.xy] - height[uint2(id.x - i, id.y - j)];
+                newCurvature = max(0.0, hPos + hNeg);
+
+                if (newCurvature > threshold && newCurvature > maxCurvature) {
+                    if (hPos > hNeg) {
+                        xDir = i;
+                        yDir = j;
+                    }
+                    else {
+                        xDir = -i;
+                        yDir = -j;
+                    }
+                    maxCurvature = newCurvature;
+                }
+            }
+        }
     }
 
-    float hR = 0.0;
-    if (id.x < resolution - 1) {
-        hR = height[id.xy] - height[uint2(id.x + 1, id.y)];
-    }
-
-    float hT = 0.0;
-    if (id.y < resolution - 1) {
-        hT = height[id.xy] - height[uint2(id.x, id.y + 1)];
-    }
-
-    float hB = 0.0;
-    if (id.y > 0) {
-        hB = height[id.xy] - height[uint2(id.x, id.y - 1)];
-    }
-
-    if (hL < threshold) { hL = 0.0; }
-    if (hR < threshold) { hR = 0.0; }
-    if (hT < threshold) { hT = 0.0; }
-    if (hB < threshold) { hB = 0.0; }
-
-    return float4(hL, hR, hT, hB) * scalingFactor;
+    return float4(xDir, yDir, maxCurvature * scalingFactor, 0.0);
 }
  

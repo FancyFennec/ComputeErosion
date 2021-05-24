@@ -52,7 +52,7 @@ public class ErosionEditor : Editor
     KeyValuePair<string, float> evaporationConstant = new KeyValuePair<string, float>("Ke", 0.00003f);
 
     KeyValuePair<string, float> capacityConstant = new KeyValuePair<string, float>("Kc", 1.9f);
-    KeyValuePair<string, float> sedimentConstant = new KeyValuePair<string, float>("Ks", 0.01f);
+    KeyValuePair<string, float> solubilityConstant = new KeyValuePair<string, float>("Ks", 0.01f);
     KeyValuePair<string, float> depositionConstant = new KeyValuePair<string, float>("Kd", 0.01f);
 
     float dTime = 1000.0f / 60f;
@@ -137,14 +137,14 @@ public class ErosionEditor : Editor
                 capacityConstant = new KeyValuePair<string, float>(capacityConstant.Key, newCapacity);
                 erosionAndDecompositionShader.SetFloat(capacityConstant);
             }
-            GUILayout.Label("Sediment Capacity");
-            float newSedimentCapacity = EditorGUILayout.Slider(sedimentConstant.Value, 0.0000001f, 0.1f);
-            if (sedimentConstant.Value != newSedimentCapacity)
+            GUILayout.Label("Solubility");
+            float newSedimentCapacity = EditorGUILayout.Slider(solubilityConstant.Value, 0.0000001f, 0.1f);
+            if (solubilityConstant.Value != newSedimentCapacity)
             {
-                sedimentConstant = new KeyValuePair<string, float>(sedimentConstant.Key, newSedimentCapacity);
-                erosionAndDecompositionShader.SetFloat(sedimentConstant);
+                solubilityConstant = new KeyValuePair<string, float>(solubilityConstant.Key, newSedimentCapacity);
+                erosionAndDecompositionShader.SetFloat(solubilityConstant);
             }
-            GUILayout.Label("Decomposition Capacity");
+            GUILayout.Label("Decomposition");
             float newDepositionCapacity = EditorGUILayout.Slider(depositionConstant.Value, 0.0000001f, 0.1f);
             if (depositionConstant.Value != newDepositionCapacity)
             {
@@ -199,7 +199,7 @@ public class ErosionEditor : Editor
            .withTexture(vel)
            .withTexture(sediment)
            .withFloat(capacityConstant)
-           .withFloat(sedimentConstant)
+           .withFloat(solubilityConstant)
            .withFloat(depositionConstant)
            .build();
         sedimentTransportAndEvaporationShader = new ErosionShaderBuilder().withName("SedimentTransportationAndEvaporation").withResolution(resolution)
@@ -213,6 +213,7 @@ public class ErosionEditor : Editor
         materialTransportShader = new ErosionShaderBuilder().withName("MaterialTransport").withResolution(resolution)
             .withTexture(height)
            .withTexture(terrainFlux)
+           .withTexture(sediment)
            .build();
     }
 

@@ -2,18 +2,34 @@
 
 RWTexture2D<float> height;
 RWTexture2D<float4> terrainFlux;
+RWTexture2D<float2> sed;
 
 int resolution;
 float dTime;
 
+bool flowsInside(int i, int j, uint3 id);
+
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float fIn = terrainFlux[uint2(id.x + 1, id.y)].x
-        + terrainFlux[uint2(id.x - 1, id.y)].y
-        + terrainFlux[uint2(id.x, id.y - 1)].z
-        + terrainFlux[uint2(id.x, id.y + 1)].w;
-    float fOut = terrainFlux[id.xy].x + terrainFlux[id.xy].y + terrainFlux[id.xy].z + terrainFlux[id.xy].w;
+    float fIn = 0.0;
+    float fOut = 0.0;
 
-    height[id.xy] = height[id.xy] + fIn - fOut;
+    if (terrainFlux[id.xy].x != 0 || terrainFlux[id.xy].y != 0) {
+        fOut = terrainFlux[id.xy].z;
+    }
+
+    for (int i = -1; i < 2; i++) {
+        for (int j = -1; j <2; j++) {
+            if ((i != 0 || j != 0) && flowsInside(i, j, id)) {
+                fIn = fIn + terrainFlux[uint2(id.x + i, id.y + j)].z;
+            }
+        }
+    }
+
+    height[id.xy] = height[id.xy] + fIn - fOut; 
+}
+
+bool flowsInside(int i, int j, uint3 id) {
+    return terrainFlux[uint2(id.x + i, id.y + j)].x + i == 0.0 && terrainFlux[uint2(id.x + i, id.y + j)].y + j == 0.0;
 }
