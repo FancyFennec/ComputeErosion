@@ -1,4 +1,5 @@
 #pragma kernel CSMain
+#include <random.h>
 
 RWTexture2D<float2> water;
 
@@ -8,13 +9,12 @@ float waterIncrease;
 
 float2 addSpring(uint3 id, int2 source, float radius);
 float2 addRain(uint3 id);
-float random(float2 uv);
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    water[id.xy] = addSpring(id, int2(resolution / 2, resolution / 2), resolution / 1024.0 * 40.0);
-    //water[id.xy] = addRain(id);
+    //water[id.xy] = addSpring(id, int2(resolution / 2, resolution / 2), resolution / 1024.0 * 40.0);
+    water[id.xy] = addRain(id);
 }
 
 float2 addSpring(uint3 id, int2 source, float radius) {
@@ -27,13 +27,8 @@ float2 addSpring(uint3 id, int2 source, float radius) {
 
 float2 addRain(uint3 id) {
     float w = water[id.xy].x;
-    if (random(time * float2(id.xy)) > 0.88) {
-        w = w + waterIncrease;
-    }
+    if (random(time * float2(id.xy)) > 0.99) {
+		w = w + waterIncrease;
+	}
     return float2(w, water[id.xy].y);
-}
-
-float random(float2 uv)
-{
-    return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453123);
 }

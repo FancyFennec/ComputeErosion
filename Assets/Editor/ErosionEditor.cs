@@ -250,9 +250,9 @@ public class ErosionEditor : Editor
 	{
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("X-Offset");
-		float newXOffset = EditorGUILayout.Slider(xOffset, -5f, +5f);
+		float newXOffset = EditorGUILayout.Slider(xOffset, -1f, 1f);
 		GUILayout.Label("Y-Offset");
-        float newyOffset = EditorGUILayout.Slider(yOffset, -5f, +5f);
+        float newyOffset = EditorGUILayout.Slider(yOffset, -1f, 1f);
 		EditorGUILayout.EndHorizontal();
 
         if(newXOffset != xOffset || newyOffset != yOffset)
