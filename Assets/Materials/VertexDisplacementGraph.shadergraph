@@ -1840,7 +1840,7 @@
     "m_Type": "UnityEditor.ShaderGraph.Vector1MaterialSlot",
     "m_ObjectId": "534d23a1b6825e8a9aa4b693b6c6f883",
     "m_Id": 0,
-    "m_DisplayName": "height",
+    "m_DisplayName": "height_scale",
     "m_SlotType": 1,
     "m_Hidden": false,
     "m_ShaderOutputName": "Out",
