@@ -7,15 +7,14 @@ using UnityEngine;
 
 public class ErosionTexture
 {
+	public string key { get; }
+	private int resolution { get; }
+	private RenderTextureFormat format { get; }
+	public RenderTexture texture { get; private set; }
 
-	private string name;
-	private int resolution;
-	private RenderTextureFormat format;
-	public KeyValuePair<string, RenderTexture> texture;
-
-	public ErosionTexture(string name, int resolution, RenderTextureFormat format)
+	public ErosionTexture(string key, int resolution, RenderTextureFormat format)
 	{
-		this.name = name;
+		this.key = key;
 		this.resolution = resolution;
 		this.format = format;
 		InitialiseTexture();
@@ -29,12 +28,12 @@ public class ErosionTexture
 			useDynamicScale = true
 		};
 		texture.Create();
-		this.texture = new KeyValuePair<string, RenderTexture>(name, texture);
+		this.texture = texture;
 	}
 
 	public void Initialise()
 	{
-		if (!default(KeyValuePair<string, RenderTexture>).Equals(texture.Value))
+		if (!default(KeyValuePair<string, RenderTexture>).Equals(texture))
 		{
 			ClearTexture();
 		}
@@ -47,7 +46,7 @@ public class ErosionTexture
 	private void ClearTexture()
 	{
 		RenderTexture rt = RenderTexture.active;
-		RenderTexture.active = texture.Value;
+		RenderTexture.active = texture;
 		GL.Clear(true, true, Color.clear);
 		RenderTexture.active = rt;
 	}

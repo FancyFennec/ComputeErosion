@@ -174,7 +174,7 @@ public class ErosionEditor : Editor
         SetOffset();
         SetOctaves();
 
-        perlinNoiseShader.SetTexture(perlinNoiseHandle, height.texture.Key, height.texture.Value);
+        perlinNoiseShader.SetTexture(perlinNoiseHandle, height.key, height.texture);
         perlinNoiseShader.SetInt("resolution", resolution);
         perlinNoiseShader.Dispatch(perlinNoiseHandle, resolution / 8, resolution / 8, 1);
     }
@@ -195,26 +195,26 @@ public class ErosionEditor : Editor
         perlinNoiseHandle = perlinNoiseShader.FindKernel("CSMain");
 
         addWaterShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.ADD_WATER).withResolution(resolution)
-            .withTexture(water.texture)
+            .withTexture(water)
             .withFloat(waterIncrease)
             .build();
         fluxShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.FLUX).withResolution(resolution)
-            .withTexture(height.texture)
-            .withTexture(water.texture)
-            .withTexture(flux.texture)
+            .withTexture(height)
+            .withTexture(water)
+            .withTexture(flux)
             .withFloat(dTime)
             .build();
         waterAndVelocityShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.WATER_AND_VELOCIY).withResolution(resolution)
-            .withTexture(water.texture)
-            .withTexture(flux.texture)
-            .withTexture(velocity.texture)
+            .withTexture(water)
+            .withTexture(flux)
+            .withTexture(velocity)
             .withFloat(dTime)
             .build();
         erosionAndDecompositionShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.EROSION_AND_DECOMPOSITION).withResolution(resolution)
-            .withTexture(height.texture)
-           .withTexture(water.texture)
-           .withTexture(velocity.texture)
-           .withTexture(sediment.texture)
+            .withTexture(height)
+           .withTexture(water)
+           .withTexture(velocity)
+           .withTexture(sediment)
            .withFloat(capacityConstant)
            .withFloat(solubilityConstant)
            .withFloat(depositionConstant)
@@ -222,18 +222,18 @@ public class ErosionEditor : Editor
            .withFloat(dTime)
            .build();
         sedimentTransportAndEvaporationShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.SEDIMENT_TRANSPORT_AND_EVAPORATION).withResolution(resolution)
-            .withTexture(height.texture)
-           .withTexture(water.texture)
-           .withTexture(velocity.texture)
-           .withTexture(sediment.texture)
-           .withTexture(terrainFlux.texture)
+            .withTexture(height)
+           .withTexture(water)
+           .withTexture(velocity)
+           .withTexture(sediment)
+           .withTexture(terrainFlux)
            .withFloat(evaporationConstant)
            .withFloat(dTime)
            .build();
         materialTransportShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.MATERIAL_TRANSPORT).withResolution(resolution)
-            .withTexture(height.texture)
-           .withTexture(terrainFlux.texture)
-           .withTexture(sediment.texture)
+            .withTexture(height)
+           .withTexture(terrainFlux)
+           .withTexture(sediment)
            .withFloat(dTime)
            .build();
     }
@@ -243,8 +243,8 @@ public class ErosionEditor : Editor
         rend = terrain.GetComponent<Renderer>();
         rend.enabled = true;
 
-        rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", height.texture.Value);
-        rend.sharedMaterial.SetTexture("Texture2D_6e077698234c43b5858f766869fb4614", water.texture.Value);
+        rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", height.texture);
+        rend.sharedMaterial.SetTexture("Texture2D_6e077698234c43b5858f766869fb4614", water.texture);
     }
 
     private void RenderTerrainEditor()

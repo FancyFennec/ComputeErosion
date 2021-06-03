@@ -10,7 +10,7 @@ public class ErosionShaderBuilder : ErosionShader
 	private string name;
 	public ErosionShaderBuilder()
 	{
-		textures = new List<KeyValuePair<String, RenderTexture>>();
+		textures = new List<ErosionTexture>();
 		ints = new List<KeyValuePair<String, int>>();
 		floats = new List<KeyValuePair<String, float>>();
 	}
@@ -47,12 +47,7 @@ public class ErosionShaderBuilder : ErosionShader
 		return this;
 	}
 
-	public ErosionShaderBuilder withTexture(string key, RenderTexture value)
-	{
-		return withTexture(new KeyValuePair<string, RenderTexture>(key, value));
-	}
-
-	public ErosionShaderBuilder withTexture(KeyValuePair<string, RenderTexture> texture)
+	public ErosionShaderBuilder withTexture(ErosionTexture texture)
 	{
 		textures.Add(texture);
 		return this;
@@ -73,7 +68,7 @@ public class ErosionShader
 {
 	protected ComputeShader shader;
 	protected int resolution;
-	protected List<KeyValuePair<string, RenderTexture>> textures;
+	protected List<ErosionTexture> textures;
 	protected List<KeyValuePair<string, int>> ints;
 	protected List<KeyValuePair<string, float>> floats;
 
@@ -84,12 +79,12 @@ public class ErosionShader
 	public ErosionShader(
 		string shaderName,
 		int resolution,
-		params KeyValuePair<String, RenderTexture>[] textures)
+		params ErosionTexture[] textures)
 	{
 		shader = (ComputeShader)Resources.Load(shaderName);
 		this.resolution = resolution;
 		handle = shader.FindKernel("CSMain");
-		this.textures = new List<KeyValuePair<string, RenderTexture>>(textures);
+		this.textures = new List<ErosionTexture>(textures);
 		this.ints = new List<KeyValuePair<string, int>>() { new KeyValuePair<string, int>("resolution", resolution) };
 		this.floats = new List<KeyValuePair<string, float>>();
 
@@ -99,7 +94,7 @@ public class ErosionShader
 	public ErosionShader(
 		string shaderName,
 		int resolution,
-		List<KeyValuePair<String, RenderTexture>> textures,
+		List<ErosionTexture> textures,
 		List<KeyValuePair<String, int>> ints,
 		List<KeyValuePair<String, float>> floats) : this(shaderName, resolution, textures.ToArray())
 	{
@@ -120,7 +115,7 @@ public class ErosionShader
 	{
 		textures.ForEach(tex =>
 		{
-			shader.SetTexture(handle, tex.Key, tex.Value);
+			shader.SetTexture(handle, tex.key, tex.texture);
 		});
 	}
 
