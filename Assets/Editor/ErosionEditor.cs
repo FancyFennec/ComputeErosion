@@ -58,22 +58,22 @@ public class ErosionEditor : Editor
     float xOffset = 0f;
     float yOffset = 0f;
 
-    KeyValuePair<string, float> waterIncrease = new KeyValuePair<string, float>("waterIncrease", 0.000003f);
-    KeyValuePair<string, float> evaporationConstant = new KeyValuePair<string, float>("Ke", 0.00003f);
-
-    KeyValuePair<string, float> capacityConstant = new KeyValuePair<string, float>("Kc", 1.9f);
-    KeyValuePair<string, float> solubilityConstant = new KeyValuePair<string, float>("Ks", 0.01f);
-    KeyValuePair<string, float> depositionConstant = new KeyValuePair<string, float>("Kd", 0.01f);
-    KeyValuePair<string, float> minAngle = new KeyValuePair<string, float>("minAngle", 0.05f);
-    KeyValuePair<string, float> dTime = new KeyValuePair<string, float>("dTime", 1000.0f / 60f);
+    ErosionFloat waterIncrease = new ErosionFloat("waterIncrease", 0.000003f, "Water Increase", 0f, 0.00005f);
+    ErosionFloat evaporationConstant = new ErosionFloat("Ke", 0.00003f, "Evaporation", 0.0000001f, 0.001f);
+    ErosionFloat capacityConstant = new ErosionFloat("Kc", 1.9f, "Capacity", 0.0000001f, 3f);
+    ErosionFloat solubilityConstant = new ErosionFloat("Ks", 0.01f, "Solubility", 0.0000001f, 0.1f);
+    ErosionFloat depositionConstant = new ErosionFloat("Kd", 0.01f, "Deposition", 0.0000001f, 0.1f);
+    ErosionFloat minAngle = new ErosionFloat("minAngle", 0.05f, "Min Angle", 0.0f, 1.0f);
+    ErosionFloat dTime = new ErosionFloat("dTime", 1000.0f / 60f, "Time Step", 0f, 100f);
 
     private void OnEnable()
 	{
 		terrain = (ErodingTerrain)target;
 
-        InitialiseOctaves();
+		InitialiseOctaves();
 		InitialiseTextures();
 		InitialiseShaders();
+		SetConstants();
 
 		SetPerlinNoiseShaderValues();
 		SetRenderShaderTextures();
@@ -112,60 +112,14 @@ public class ErosionEditor : Editor
         } else
 		{
             GUILayout.Label("Water Control");
-            GUILayout.Label("Time Step");
-            float newDTime = EditorGUILayout.Slider(dTime.Value, 0f, 100f);
-            if (dTime.Value != newDTime)
-            {
-                dTime = new KeyValuePair<string, float>(dTime.Key, newDTime);
-                fluxShader.SetFloat(dTime);
-                waterAndVelocityShader.SetFloat(dTime);
-                erosionAndDecompositionShader.SetFloat(dTime);
-                sedimentTransportAndEvaporationShader.SetFloat(dTime);
-                materialTransportShader.SetFloat(dTime);
-            }
-            GUILayout.Label("Water Increase");
-            float newWaterIncrease = EditorGUILayout.Slider(waterIncrease.Value, 0f, 0.00005f);
-            if (waterIncrease.Value != newWaterIncrease)
-            {
-                waterIncrease = new KeyValuePair<string, float>(waterIncrease.Key, newWaterIncrease);
-                addWaterShader.SetFloat(waterIncrease);
-            }
-            GUILayout.Label("Evaporation");
-            float newKe = EditorGUILayout.Slider(evaporationConstant.Value, 0.0000001f, 0.001f);
-            if(evaporationConstant.Value != newKe)
-			{
-                evaporationConstant = new KeyValuePair<string, float>(evaporationConstant.Key, newKe);
-                sedimentTransportAndEvaporationShader.SetFloat(evaporationConstant);
-            }
+            dTime.drawSlider();
+            waterIncrease.drawSlider();
+            evaporationConstant.drawSlider();
             GUILayout.Label("Erosion Control");
-            GUILayout.Label("Capacity");
-            float newCapacity = EditorGUILayout.Slider(capacityConstant.Value, 0.0000001f, 3f);
-            if (capacityConstant.Value != newCapacity)
-            {
-                capacityConstant = new KeyValuePair<string, float>(capacityConstant.Key, newCapacity);
-                erosionAndDecompositionShader.SetFloat(capacityConstant);
-            }
-            GUILayout.Label("Solubility");
-            float newSedimentCapacity = EditorGUILayout.Slider(solubilityConstant.Value, 0.0000001f, 0.1f);
-            if (solubilityConstant.Value != newSedimentCapacity)
-            {
-                solubilityConstant = new KeyValuePair<string, float>(solubilityConstant.Key, newSedimentCapacity);
-                erosionAndDecompositionShader.SetFloat(solubilityConstant);
-            }
-            GUILayout.Label("Decomposition");
-            float newDepositionCapacity = EditorGUILayout.Slider(depositionConstant.Value, 0.0000001f, 0.1f);
-            if (depositionConstant.Value != newDepositionCapacity)
-            {
-                depositionConstant = new KeyValuePair<string, float>(depositionConstant.Key, newDepositionCapacity);
-                erosionAndDecompositionShader.SetFloat(depositionConstant);
-            }
-            GUILayout.Label("Min Angle");
-            float newMinAngle = EditorGUILayout.Slider(minAngle.Value, 0.0f, 1.0f);
-            if (minAngle.Value != newMinAngle)
-            {
-                minAngle = new KeyValuePair<string, float>(minAngle.Key, newMinAngle);
-                erosionAndDecompositionShader.SetFloat(minAngle);
-            }
+            capacityConstant.drawSlider();
+            solubilityConstant.drawSlider();
+            depositionConstant.drawSlider();
+            minAngle.drawSlider();
         }
 	}
 
@@ -196,30 +150,30 @@ public class ErosionEditor : Editor
 
         addWaterShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.ADD_WATER).withResolution(resolution)
             .withTexture(water)
-            .withFloat(waterIncrease)
+            .withConst(waterIncrease)
             .build();
         fluxShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.FLUX).withResolution(resolution)
             .withTexture(height)
             .withTexture(water)
             .withTexture(flux)
-            .withFloat(dTime)
+            .withConst(dTime)
             .build();
         waterAndVelocityShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.WATER_AND_VELOCIY).withResolution(resolution)
             .withTexture(water)
             .withTexture(flux)
             .withTexture(velocity)
-            .withFloat(dTime)
+            .withConst(dTime)
             .build();
         erosionAndDecompositionShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.EROSION_AND_DECOMPOSITION).withResolution(resolution)
             .withTexture(height)
            .withTexture(water)
            .withTexture(velocity)
            .withTexture(sediment)
-           .withFloat(capacityConstant)
-           .withFloat(solubilityConstant)
-           .withFloat(depositionConstant)
-           .withFloat(minAngle)
-           .withFloat(dTime)
+           .withConst(capacityConstant)
+           .withConst(solubilityConstant)
+           .withConst(depositionConstant)
+           .withConst(minAngle)
+           .withConst(dTime)
            .build();
         sedimentTransportAndEvaporationShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.SEDIMENT_TRANSPORT_AND_EVAPORATION).withResolution(resolution)
             .withTexture(height)
@@ -227,15 +181,25 @@ public class ErosionEditor : Editor
            .withTexture(velocity)
            .withTexture(sediment)
            .withTexture(terrainFlux)
-           .withFloat(evaporationConstant)
-           .withFloat(dTime)
+           .withConst(evaporationConstant)
+           .withConst(dTime)
            .build();
         materialTransportShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.MATERIAL_TRANSPORT).withResolution(resolution)
             .withTexture(height)
            .withTexture(terrainFlux)
            .withTexture(sediment)
-           .withFloat(dTime)
+           .withConst(dTime)
            .build();
+    }
+
+    private void SetConstants()
+    {
+        waterIncrease.SetConstant();
+        evaporationConstant.SetConstant();
+        solubilityConstant.SetConstant();
+        depositionConstant.SetConstant();
+        minAngle.SetConstant();
+        dTime.SetConstant();
     }
 
     private void SetRenderShaderTextures()

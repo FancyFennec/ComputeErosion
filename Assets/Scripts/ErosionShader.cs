@@ -11,8 +11,7 @@ public class ErosionShaderBuilder : ErosionShader
 	public ErosionShaderBuilder()
 	{
 		textures = new List<ErosionTexture>();
-		ints = new List<KeyValuePair<String, int>>();
-		floats = new List<KeyValuePair<String, float>>();
+		consts = new List<ErosionFloat>();
 	}
 	public ErosionShaderBuilder withResolution(int resolution)
 	{
@@ -25,25 +24,9 @@ public class ErosionShaderBuilder : ErosionShader
 		return this;
 	}
 
-	public ErosionShaderBuilder withInt(string key, int value)
+	public ErosionShaderBuilder withConst(ErosionFloat constant)
 	{
-		return withInt(new KeyValuePair<string, int>(key, value));
-	}
-
-	public ErosionShaderBuilder withInt(KeyValuePair<string, int> value)
-	{
-		ints.Add(value);
-		return this;
-	}
-
-	public ErosionShaderBuilder withFloat(string key, float value)
-	{
-		return withFloat(new KeyValuePair<string, float>(key, value));
-	}
-
-	public ErosionShaderBuilder withFloat(KeyValuePair<string, float> value)
-	{
-		floats.Add(value);
+		consts.Add(constant);
 		return this;
 	}
 
@@ -55,9 +38,8 @@ public class ErosionShaderBuilder : ErosionShader
 
 	public ErosionShader build()
 	{
-		ErosionShader erosionShader = new ErosionShader(name, resolution, textures, ints, floats);
-		erosionShader.SetFloats();
-		erosionShader.SetInts();
+		ErosionShader erosionShader = new ErosionShader(name, resolution, textures, consts);
+		consts.ForEach(constant => constant.addShader(erosionShader));
 		erosionShader.SetTextures();
 		erosionShader.Dispatch();
 		return erosionShader;
@@ -69,8 +51,7 @@ public class ErosionShader
 	protected ComputeShader shader;
 	protected int resolution;
 	protected List<ErosionTexture> textures;
-	protected List<KeyValuePair<string, int>> ints;
-	protected List<KeyValuePair<string, float>> floats;
+	protected List<ErosionFloat> consts;
 
 	int handle;
 
@@ -85,8 +66,7 @@ public class ErosionShader
 		this.resolution = resolution;
 		handle = shader.FindKernel("CSMain");
 		this.textures = new List<ErosionTexture>(textures);
-		this.ints = new List<KeyValuePair<string, int>>() { new KeyValuePair<string, int>("resolution", resolution) };
-		this.floats = new List<KeyValuePair<string, float>>();
+		this.consts = new List<ErosionFloat>();
 
 		Initialise();
 	}
@@ -95,11 +75,9 @@ public class ErosionShader
 		string shaderName,
 		int resolution,
 		List<ErosionTexture> textures,
-		List<KeyValuePair<String, int>> ints,
-		List<KeyValuePair<String, float>> floats) : this(shaderName, resolution, textures.ToArray())
+		List<ErosionFloat> consts) : this(shaderName, resolution, textures.ToArray())
 	{
-		this.ints.AddRange(new List<KeyValuePair<string, int>>(ints));
-		this.floats.AddRange(new List<KeyValuePair<string, float>>(floats));
+		this.consts.AddRange(new List<ErosionFloat>(consts));
 
 		Initialise();
 	}
@@ -107,8 +85,7 @@ public class ErosionShader
 	public void Initialise()
 	{
 		SetTextures();
-		SetInts();
-		SetInts();
+		shader.SetInt("resolution", resolution);
 	}
 
 	public void SetTextures()
@@ -124,29 +101,9 @@ public class ErosionShader
 		shader.SetInt(key, value);
 	}
 
-	public void SetInt(KeyValuePair<string, int> pair)
-	{
-		shader.SetInt(pair.Key, pair.Value);
-	}
-
-	public void SetInts()
-	{
-		ints.ForEach(SetInt);
-	}
-
 	public void SetFloat(string key, float value)
 	{
 		shader.SetFloat(key, value);
-	}
-
-	public void SetFloat(KeyValuePair<string, float> pair)
-	{
-		shader.SetFloat(pair.Key, pair.Value);
-	}
-
-	public void SetFloats()
-	{
-		floats.ForEach(SetFloat);
 	}
 
 	public void Dispatch()
