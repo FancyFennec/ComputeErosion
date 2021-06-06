@@ -46,6 +46,7 @@ public class ErosionEditor : Editor
     ErosionShader erosionAndDecompositionShader;
     ErosionShader sedimentTransportAndEvaporationShader;
     ErosionShader materialTransportShader;
+    List<ErosionShader> shaders;
 
     ErosionTexture height;
     ErosionTexture water;
@@ -53,29 +54,39 @@ public class ErosionEditor : Editor
     ErosionTexture terrainFlux;
     ErosionTexture velocity;
     ErosionTexture sediment;
-    
+    List<ErosionTexture> textures;
 
     float xOffset = 0f;
     float yOffset = 0f;
 
-    ErosionFloat waterIncrease = new ErosionFloat("waterIncrease", 0.000003f, "Water Increase", 0f, 0.00005f);
-    ErosionFloat evaporationConstant = new ErosionFloat("Ke", 0.00003f, "Evaporation", 0.0000001f, 0.001f);
-    ErosionFloat capacityConstant = new ErosionFloat("Kc", 1.9f, "Capacity", 0.0000001f, 3f);
-    ErosionFloat solubilityConstant = new ErosionFloat("Ks", 0.01f, "Solubility", 0.0000001f, 0.1f);
-    ErosionFloat depositionConstant = new ErosionFloat("Kd", 0.01f, "Deposition", 0.0000001f, 0.1f);
-    ErosionFloat minAngle = new ErosionFloat("minAngle", 0.05f, "Min Angle", 0.0f, 1.0f);
-    ErosionFloat dTime = new ErosionFloat("dTime", 1000.0f / 60f, "Time Step", 0f, 100f);
+    static ErosionFloat waterIncrease = new ErosionFloat("waterIncrease", 0.000003f, "Water Increase", 0f, 0.00005f);
+    static ErosionFloat evaporationConstant = new ErosionFloat("Ke", 0.00003f, "Evaporation", 0.0000001f, 0.001f);
+    static ErosionFloat capacityConstant = new ErosionFloat("Kc", 1.9f, "Capacity", 0.0000001f, 3f);
+    static ErosionFloat solubilityConstant = new ErosionFloat("Ks", 0.01f, "Solubility", 0.0000001f, 0.1f);
+    static ErosionFloat depositionConstant = new ErosionFloat("Kd", 0.01f, "Deposition", 0.0000001f, 0.1f);
+    static ErosionFloat minAngle = new ErosionFloat("minAngle", 0.05f, "Min Angle", 0.0f, 1.0f);
+    static ErosionFloat dTime = new ErosionFloat("dTime", 1000.0f / 60f, "Time Step", 0f, 100f);
+    List<ErosionFloat> constants = new List<ErosionFloat>() { 
+        waterIncrease, 
+        evaporationConstant, 
+        capacityConstant, 
+        solubilityConstant, 
+        depositionConstant,
+        minAngle,
+        dTime
+    };
 
     private void OnEnable()
 	{
 		terrain = (ErodingTerrain)target;
 
-		InitialiseOctaves();
+		InitialiseOctaveBuffer();
 		InitialiseTextures();
 		InitialiseShaders();
-		SetConstants();
 
-		SetPerlinNoiseShaderValues();
+        constants.ForEach(c => c.SetConstant());
+
+        SetPerlinNoiseShaderValues();
 		SetRenderShaderTextures();
 	}
 
@@ -84,12 +95,7 @@ public class ErosionEditor : Editor
         if (!editingTerrain)
         {
             addWaterShader.SetFloat("time", ((float)EditorApplication.timeSinceStartup % 10));
-            addWaterShader.Dispatch();
-            fluxShader.Dispatch();
-            waterAndVelocityShader.Dispatch();
-            erosionAndDecompositionShader.Dispatch();
-            sedimentTransportAndEvaporationShader.Dispatch();
-            materialTransportShader.Dispatch();
+            shaders.ForEach(s => s.Dispatch());
         }
     }
 
@@ -100,10 +106,9 @@ public class ErosionEditor : Editor
             editingTerrain = !editingTerrain;
             if(editingTerrain)
 			{
-                height.Initialise();
+                textures.ForEach(t => t.Initialise());
                 perlinNoiseShader.Dispatch(perlinNoiseHandle, resolution / 8, resolution / 8, 1);
             }
-            InitialiseTextures();
         }
 
 		if (editingTerrain)
@@ -123,6 +128,93 @@ public class ErosionEditor : Editor
         }
 	}
 
+    private void RenderTerrainEditor()
+    {
+        RenderResolutionField();
+        RenderOffsetSliders();
+        RenderOctaveSliders();
+    }
+
+    private void RenderResolutionField()
+    {
+        int newRes = EditorGUILayout.IntField("Resolution ", resolution);
+        if (newRes != resolution)
+        {
+            resolution = newRes;
+            ScalableBufferManager.ResizeBuffers(resolution, resolution);
+            perlinNoiseShader.SetInt("resolution", resolution);
+
+            perlinNoiseShader.Dispatch(perlinNoiseHandle, resolution / 8, resolution / 8, 1);
+        }
+    }
+
+    private void RenderOffsetSliders()
+    {
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.Label("X-Offset");
+        float newXOffset = EditorGUILayout.Slider(xOffset, -1f, 1f);
+        GUILayout.Label("Y-Offset");
+        float newyOffset = EditorGUILayout.Slider(yOffset, -1f, 1f);
+        EditorGUILayout.EndHorizontal();
+
+        if (newXOffset != xOffset || newyOffset != yOffset)
+        {
+            xOffset = newXOffset;
+            yOffset = newyOffset;
+            SetOffset();
+
+            perlinNoiseShader.Dispatch(perlinNoiseHandle, resolution / 8, resolution / 8, 1);
+        }
+    }
+
+    private void RenderOctaveSliders()
+    {
+        List<Octave> octavesToRender = new List<Octave>(octaves);
+
+        bool somethingChanged = false;
+
+        for (int index = 0; index < octavesToRender.Count; index++)
+        {
+            Octave octave = octavesToRender[index];
+            EditorGUILayout.BeginHorizontal();
+
+            GUILayout.Label("Freq " + index);
+            float frequency = Mathf.Exp(EditorGUILayout.Slider(Mathf.Log(octave.frequency + 1), 0f, 5f)) - 1;
+            GUILayout.Label("Amp " + index);
+            float amplitude = EditorGUILayout.Slider(octave.amplitude, 0f, 1f);
+
+            if (frequency != octave.frequency || amplitude != octave.amplitude)
+            {
+                somethingChanged = true;
+                octaves[index] = new Octave(frequency, amplitude);
+            }
+
+            if (index > 0)
+            {
+                if (GUILayout.Button("-")) octaves.RemoveAt(index);
+            }
+            else
+            {
+                GUILayout.Label("    ");
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+
+        if (GUILayout.Button("Add Octave"))
+        {
+            octaves.Add(new Octave(1f, 1f));
+            somethingChanged = true;
+        }
+
+        if (somethingChanged)
+        {
+            InitialiseOctaveBuffer();
+            SetOctaves();
+
+            perlinNoiseShader.Dispatch(perlinNoiseHandle, resolution / 8, resolution / 8, 1);
+        }
+    }
+
     private void SetPerlinNoiseShaderValues()
     {
         SetOffset();
@@ -141,6 +233,8 @@ public class ErosionEditor : Editor
         terrainFlux = new ErosionTexture("terrainFlux", resolution, RenderTextureFormat.ARGBFloat);
         velocity = new ErosionTexture("vel", resolution, RenderTextureFormat.RGFloat);
         sediment = new ErosionTexture("sed", resolution, RenderTextureFormat.RGFloat);
+
+        textures = new List<ErosionTexture>() { height, water, flux, terrainFlux, velocity, sediment };
     }   
 
     private void InitialiseShaders()
@@ -190,16 +284,15 @@ public class ErosionEditor : Editor
            .withTexture(sediment)
            .withConst(dTime)
            .build();
-    }
 
-    private void SetConstants()
-    {
-        waterIncrease.SetConstant();
-        evaporationConstant.SetConstant();
-        solubilityConstant.SetConstant();
-        depositionConstant.SetConstant();
-        minAngle.SetConstant();
-        dTime.SetConstant();
+        shaders = new List<ErosionShader>() { 
+            addWaterShader, 
+            fluxShader, 
+            waterAndVelocityShader, 
+            erosionAndDecompositionShader, 
+            sedimentTransportAndEvaporationShader,
+            materialTransportShader
+        };
     }
 
     private void SetRenderShaderTextures()
@@ -211,92 +304,7 @@ public class ErosionEditor : Editor
         rend.sharedMaterial.SetTexture("Texture2D_6e077698234c43b5858f766869fb4614", water.texture);
     }
 
-    private void RenderTerrainEditor()
-	{
-		RenderResolutionField();
-		RenderOffsetSliders();
-		RenderOctaveSliders();
-	}
-
-	private void RenderResolutionField()
-	{
-		int newRes = EditorGUILayout.IntField("Resolution ", resolution);
-        if(newRes != resolution)
-		{
-            resolution = newRes;
-            ScalableBufferManager.ResizeBuffers(resolution, resolution);
-            perlinNoiseShader.SetInt("resolution", resolution);
-
-            perlinNoiseShader.Dispatch(perlinNoiseHandle, resolution / 8, resolution / 8, 1);
-        }
-	}
-
-	private void RenderOffsetSliders()
-	{
-		EditorGUILayout.BeginHorizontal();
-		GUILayout.Label("X-Offset");
-		float newXOffset = EditorGUILayout.Slider(xOffset, -1f, 1f);
-		GUILayout.Label("Y-Offset");
-        float newyOffset = EditorGUILayout.Slider(yOffset, -1f, 1f);
-		EditorGUILayout.EndHorizontal();
-
-        if(newXOffset != xOffset || newyOffset != yOffset)
-		{
-            xOffset = newXOffset;
-            yOffset = newyOffset;
-            SetOffset();
-
-            perlinNoiseShader.Dispatch(perlinNoiseHandle, resolution / 8, resolution / 8, 1);
-        }
-    }
-
-	private void RenderOctaveSliders()
-	{
-        List<Octave> octavesToRender = new List<Octave>(octaves);
-
-        bool somethingChanged = false;
-
-        for (int index = 0; index < octavesToRender.Count; index ++)
-		{
-            Octave octave = octavesToRender[index];
-            EditorGUILayout.BeginHorizontal();
-
-            GUILayout.Label("Freq " + index);
-            float frequency = Mathf.Exp(EditorGUILayout.Slider(Mathf.Log(octave.frequency + 1), 0f, 5f)) - 1;
-            GUILayout.Label("Amp " + index);
-            float amplitude = EditorGUILayout.Slider(octave.amplitude, 0f, 1f);
-
-            if (frequency != octave.frequency || amplitude != octave.amplitude)
-            {
-                somethingChanged = true;
-                octaves[index] = new Octave(frequency, amplitude);
-            }
-
-            if (index > 0)
-            {
-                if (GUILayout.Button("-")) octaves.RemoveAt(index);
-            } else
-			{
-                GUILayout.Label("    ");
-            }
-            EditorGUILayout.EndHorizontal();
-        }
-
-        if (GUILayout.Button("Add Octave")) {
-            octaves.Add(new Octave(1f, 1f));
-            somethingChanged = true;
-        }
-
-        if(somethingChanged)
-		{
-            InitialiseOctaves();
-            SetOctaves();
-
-            perlinNoiseShader.Dispatch(perlinNoiseHandle, resolution / 8, resolution / 8, 1);
-        }
-    }
-
-    private void InitialiseOctaves()
+    private void InitialiseOctaveBuffer()
 	{
 		if (octavesComputeBuffer != null) octavesComputeBuffer.Dispose();
 		octavesComputeBuffer = new ComputeBuffer(octaves.Count, sizeof(float) * 2);
