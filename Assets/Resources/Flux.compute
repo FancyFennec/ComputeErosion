@@ -1,4 +1,5 @@
 #pragma kernel CSMain
+#include <helpers.cginc>
 
 RWTexture2D<float> height;
 RWTexture2D<float2> water;
@@ -22,28 +23,14 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 float4 computeDeltaH(uint3 id) 
 {
-	float hL = 0.0;
-	float hR = 0.0;
-	float hT = 0.0;
-	float hB = 0.0;
+    float dH[4];
+    for (int i = 0; i < 4; i++)
+    {
+        uint2 index = getIndex(id, i, resolution);
+        dH[i] =  water[id.xy].x + height[id.xy] - water[index].x - height[index];
+    }
 	
-	if (id.x > 0)
-	{
-		hL = water[id.xy].x + height[id.xy] - water[uint2(id.x - 1, id.y)].x - height[uint2(id.x - 1, id.y)];
-	}
-	if (id.x < resolution - 1)
-	{
-		hR = water[id.xy].x + height[id.xy] - water[uint2(id.x + 1, id.y)].x - height[uint2(id.x + 1, id.y)];
-	}
-	if (id.y < resolution - 1)
-	{
-		hT = water[id.xy].x + height[id.xy] - water[uint2(id.x, id.y + 1)].x - height[uint2(id.x, id.y + 1)];
-	}
-	if (id.y > 0)
-	{
-		hB = water[id.xy].x + height[id.xy] - water[uint2(id.x, id.y - 1)].x - height[uint2(id.x, id.y - 1)];
-	}
-	return float4(hL, hR, hT, hB);
+    return float4(dH[0], dH[1], dH[2], dH[3]);
 }
 
 float4 computeFlux(uint3 id, float4 dH)

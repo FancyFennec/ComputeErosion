@@ -1,5 +1,5 @@
 #pragma kernel CSMain
-#include <helpers.h>
+#include <helpers.cginc>
 
 RWTexture2D<float> height;
 RWTexture2D<float2> water;

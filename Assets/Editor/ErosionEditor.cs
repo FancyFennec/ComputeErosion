@@ -61,9 +61,9 @@ public class ErosionEditor : Editor
 
     static ErosionFloat waterIncrease = new ErosionFloat("waterIncrease", 0.000003f, "Water Increase", 0f, 0.00005f);
     static ErosionFloat evaporationConstant = new ErosionFloat("Ke", 0.00003f, "Evaporation", 0.0000001f, 0.001f);
-    static ErosionFloat capacityConstant = new ErosionFloat("Kc", 1.9f, "Capacity", 0.0000001f, 3f);
-    static ErosionFloat solubilityConstant = new ErosionFloat("Ks", 0.01f, "Solubility", 0.0000001f, 0.1f);
-    static ErosionFloat depositionConstant = new ErosionFloat("Kd", 0.01f, "Deposition", 0.0000001f, 0.1f);
+    static ErosionFloat capacityConstant = new ErosionFloat("Kc", 0.25f, "Capacity", 0.0000001f, 3f);
+    static ErosionFloat solubilityConstant = new ErosionFloat("Ks", 0.002f, "Solubility", 0.0000001f, 0.1f);
+    static ErosionFloat depositionConstant = new ErosionFloat("Kd", 0.002f, "Deposition", 0.0000001f, 0.1f);
     static ErosionFloat minAngle = new ErosionFloat("minAngle", 0.05f, "Min Angle", 0.0f, 1.0f);
     static ErosionFloat dTime = new ErosionFloat("dTime", 1000.0f / 60f, "Time Step", 0f, 100f);
     static ErosionFloat curvatureThreshold = new ErosionFloat("threshold", 0.005f, "Curvature Threshold", 0f, 0.1f);
@@ -306,6 +306,7 @@ public class ErosionEditor : Editor
 
         rend.sharedMaterial.SetTexture("Texture2D_f24a80a3f47f4c20844d82524f9db08d", height.texture);
         rend.sharedMaterial.SetTexture("Texture2D_6e077698234c43b5858f766869fb4614", water.texture);
+
     }
 
     private void InitialiseOctaveBuffer()

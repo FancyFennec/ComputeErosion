@@ -1,4 +1,5 @@
 #pragma kernel CSMain
+#include <helpers.cginc>
 
 RWTexture2D<float4> flux;
 RWTexture2D<float2> water;
@@ -26,22 +27,24 @@ float computeDeltaV(uint3 id)
 {
 	float fOut = flux[id.xy].x + flux[id.xy].y + flux[id.xy].z + flux[id.xy].w;
 	float fIn = 0.0;
-	if (id.x > 0)
-	{
-		fIn = fIn + flux[uint2(id.x - 1, id.y)].y;
-	}
-	if (id.x < resolution - 1)
-	{
-		fIn = fIn + flux[uint2(id.x + 1, id.y)].x;
-	}
-	if (id.y < resolution - 1)
-	{
-		fIn = fIn + flux[uint2(id.x, id.y + 1)].w;
-	}
-	if (id.y > 0)
-	{
-		fIn = fIn + flux[uint2(id.x, id.y - 1)].z;
-	}
+	
+    if (id.x > 0)
+    {
+        fIn = fIn + flux[getL(id, resolution)].y;
+    }
+    if (id.x < resolution - 1)
+    {
+        fIn = fIn + flux[getR(id, resolution)].x;
+    }
+    if (id.y > 0)
+    {
+        fIn = fIn + flux[getB(id, resolution)].z;
+    }
+    if (id.y < resolution - 1)
+    {
+        fIn = fIn + flux[getT(id, resolution)].w;
+    }
+    
     return dTime * (fIn - fOut);
 }
 
@@ -50,17 +53,10 @@ float2 computeVel(uint3 id, float l)
     float meanWater = (water[id.xy].x + water[id.xy].y) * 0.5;
 
     if (meanWater != 0.0) {
-		float velX = 0.0;
-		float velY = 0.0;
-		if (id.x > 0 && id.x < resolution - 1)
-		{
-			velX = (flux[uint2(id.x - 1, id.y)].y - flux[id.xy].x + flux[id.xy].y - flux[uint2(id.x + 1, id.y)].x) / (2.0 * meanWater * l);
-		}
-		if (id.y > 0 && id.y < resolution - 1)
-		{
-			velY = (flux[uint2(id.x, id.y - 1)].z - flux[id.xy].w + flux[id.xy].z - flux[uint2(id.x, id.y + 1)].w) / (2.0 * meanWater * l);
-		}
-		return float2(velX, velY);
+        float velX = (flux[getL(id, resolution)].y - flux[id.xy].x + flux[id.xy].y - flux[getR(id, resolution)].x) / (2.0 * meanWater * l);
+        float velY = (flux[getB(id, resolution)].z - flux[id.xy].w + flux[id.xy].z - flux[getT(id, resolution)].w) / (2.0 * meanWater * l);
+		
+        return float2(velX, velY);
 	}
     else {
         return float2(0.0, 0.0);
