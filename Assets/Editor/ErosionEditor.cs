@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-public class ErosionShaderConstants
+public class ErosionShaderNames
 {
     public const string PERLIN_NOISE = "PerlinNoise";
     public const string ADD_WATER = "AddWater";
@@ -66,6 +66,7 @@ public class ErosionEditor : Editor
     static ErosionFloat depositionConstant = new ErosionFloat("Kd", 0.01f, "Deposition", 0.0000001f, 0.1f);
     static ErosionFloat minAngle = new ErosionFloat("minAngle", 0.05f, "Min Angle", 0.0f, 1.0f);
     static ErosionFloat dTime = new ErosionFloat("dTime", 1000.0f / 60f, "Time Step", 0f, 100f);
+    static ErosionFloat curvatureThreshold = new ErosionFloat("threshold", 0.005f, "Curvature Threshold", 0f, 0.1f);
     List<ErosionFloat> constants = new List<ErosionFloat>() { 
         waterIncrease, 
         evaporationConstant, 
@@ -73,7 +74,8 @@ public class ErosionEditor : Editor
         solubilityConstant, 
         depositionConstant,
         minAngle,
-        dTime
+        dTime,
+        curvatureThreshold
     };
 
     private void OnEnable()
@@ -125,6 +127,7 @@ public class ErosionEditor : Editor
             solubilityConstant.drawSlider();
             depositionConstant.drawSlider();
             minAngle.drawSlider();
+            curvatureThreshold.drawSlider();
         }
 	}
 
@@ -239,26 +242,26 @@ public class ErosionEditor : Editor
 
     private void InitialiseShaders()
     {
-        perlinNoiseShader = (ComputeShader)Resources.Load(ErosionShaderConstants.PERLIN_NOISE);
+        perlinNoiseShader = (ComputeShader)Resources.Load(ErosionShaderNames.PERLIN_NOISE);
         perlinNoiseHandle = perlinNoiseShader.FindKernel("CSMain");
 
-        addWaterShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.ADD_WATER).withResolution(resolution)
+        addWaterShader = new ErosionShaderBuilder().withName(ErosionShaderNames.ADD_WATER).withResolution(resolution)
             .withTexture(water)
             .withConst(waterIncrease)
             .build();
-        fluxShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.FLUX).withResolution(resolution)
+        fluxShader = new ErosionShaderBuilder().withName(ErosionShaderNames.FLUX).withResolution(resolution)
             .withTexture(height)
             .withTexture(water)
             .withTexture(flux)
             .withConst(dTime)
             .build();
-        waterAndVelocityShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.WATER_AND_VELOCIY).withResolution(resolution)
+        waterAndVelocityShader = new ErosionShaderBuilder().withName(ErosionShaderNames.WATER_AND_VELOCIY).withResolution(resolution)
             .withTexture(water)
             .withTexture(flux)
             .withTexture(velocity)
             .withConst(dTime)
             .build();
-        erosionAndDecompositionShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.EROSION_AND_DECOMPOSITION).withResolution(resolution)
+        erosionAndDecompositionShader = new ErosionShaderBuilder().withName(ErosionShaderNames.EROSION_AND_DECOMPOSITION).withResolution(resolution)
             .withTexture(height)
            .withTexture(water)
            .withTexture(velocity)
@@ -269,7 +272,7 @@ public class ErosionEditor : Editor
            .withConst(minAngle)
            .withConst(dTime)
            .build();
-        sedimentTransportAndEvaporationShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.SEDIMENT_TRANSPORT_AND_EVAPORATION).withResolution(resolution)
+        sedimentTransportAndEvaporationShader = new ErosionShaderBuilder().withName(ErosionShaderNames.SEDIMENT_TRANSPORT_AND_EVAPORATION).withResolution(resolution)
             .withTexture(height)
            .withTexture(water)
            .withTexture(velocity)
@@ -277,8 +280,9 @@ public class ErosionEditor : Editor
            .withTexture(terrainFlux)
            .withConst(evaporationConstant)
            .withConst(dTime)
+           .withConst(curvatureThreshold)
            .build();
-        materialTransportShader = new ErosionShaderBuilder().withName(ErosionShaderConstants.MATERIAL_TRANSPORT).withResolution(resolution)
+        materialTransportShader = new ErosionShaderBuilder().withName(ErosionShaderNames.MATERIAL_TRANSPORT).withResolution(resolution)
             .withTexture(height)
            .withTexture(terrainFlux)
            .withTexture(sediment)

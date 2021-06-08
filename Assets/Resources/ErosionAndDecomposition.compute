@@ -23,28 +23,30 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 {
 	float C = computeCapacity(id);
 
-	if (C > sed[id.xy].x) {
+    if (C * sinAlpha(id) > sed[id.xy].x)
+    {
 		float disolvedSed = Ks * (C - sed[id.xy].x);
 
 		disolvedSed = min(disolvedSed, height[id.xy]); //Shader graph doesn't like negative floats
 
 		height[id.xy] = height[id.xy] - disolvedSed;
-		water[id.xy] = float2(water[id.xy].x, water[id.xy].y + disolvedSed);
+		//water[id.xy] = float2(water[id.xy].x, water[id.xy].y + disolvedSed);
 		sed[id.xy] = float2(sed[id.xy].x, sed[id.xy].x + disolvedSed);
 	}
-	else {
+    else
+    {
 		float depositedSed = Kd * (sed[id.xy].x - C);
-		depositedSed = min(depositedSed, water[id.xy].y); //Shader graph doesn't like negative floats
+		//depositedSed = min(depositedSed, water[id.xy].y); //Shader graph doesn't like negative floats
 		depositedSed = min(depositedSed, sed[id.xy].x);
 
 		height[id.xy] = height[id.xy] + depositedSed;
-		water[id.xy] = float2(water[id.xy].x, water[id.xy].y - depositedSed);
+		//water[id.xy] = float2(water[id.xy].x, water[id.xy].y - depositedSed);
 		sed[id.xy] = float2(sed[id.xy].x, sed[id.xy].x - depositedSed);
 	}
 }
 
 float computeCapacity(uint3 id) {
-	return Kc * sinAlpha(id) * length(vel[id.xy]) * 100 * min(water[id.xy], 0.01);
+    return Kc * length(vel[id.xy]) * 100 * min(water[id.xy], 0.01);
 }
 
 float sinAlpha(uint3 id) {

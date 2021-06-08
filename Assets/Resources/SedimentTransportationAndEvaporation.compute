@@ -10,6 +10,7 @@ RWTexture2D<float4> terrainFlux;
 int resolution;
 float dTime;
 float Ke;
+float threshold;
 
 float computeSedimentTransport(uint3 id);
 float4 computeTerrainFlux(uint3 id);
@@ -48,7 +49,6 @@ float computeSedimentTransport(uint3 id) {
 
 float4 computeTerrainFlux(uint3 id)
 {
-    float threshold = 0.005;
     float scalingFactor = dTime * 0.001;
 
     float maxCurvature = 0.0;
