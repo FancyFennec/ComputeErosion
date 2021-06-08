@@ -46,7 +46,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 }
 
 float computeCapacity(uint3 id) {
-    return Kc * length(vel[id.xy]) * 100 * min(water[id.xy], 0.01);
+    return Kc * sinAlpha(id) * length(vel[id.xy]) * 100 * min(water[id.xy], 0.01);
 }
 
 float sinAlpha(uint3 id) {
