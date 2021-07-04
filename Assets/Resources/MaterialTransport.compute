@@ -3,9 +3,8 @@
 
 RWTexture2D<float> height;
 RWTexture2D<float4> terrainFlux;
-RWTexture2D<float2> sed;
 
-int resolution;
+uint resolution;
 float dTime;
 
 bool flowsInside(int i, int j, uint3 id);

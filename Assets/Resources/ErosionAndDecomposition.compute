@@ -3,15 +3,16 @@
 
 RWTexture2D<float> height;
 RWTexture2D<float2> vel;
-RWTexture2D<float2> water;
-RWTexture2D<float2> sed;
+RWTexture2D<float> water;
+RWTexture2D<float> sed;
+RWTexture2D<float> newSed;
 
-int resolution;
+uint resolution;
 float dTime;
 
+float Kc;
 float Ks;
 float Kd;
-float Kc;
 float minAngle;
 
 float computeCapacity(uint3 id);
@@ -22,37 +23,33 @@ float3 computeNormal(uint3 id);
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
 	float C = computeCapacity(id);
-
-    if (C * sinAlpha(id) > sed[id.xy].x)
+    
+    if (C > sed[id.xy])
     {
-		float disolvedSed = Ks * (C - sed[id.xy].x);
-		disolvedSed = min(disolvedSed, height[id.xy]);
-
-		height[id.xy] = height[id.xy] - disolvedSed;
-		sed[id.xy] = float2(sed[id.xy].x, sed[id.xy].x + disolvedSed);
+    float disolvedSed = max(0.0, Ks * (C - sed[id.xy]));
+        height[id.xy] = height[id.xy] - disolvedSed;
+		newSed[id.xy] = sed[id.xy] + disolvedSed;
 	}
     else
     {
-		float depositedSed = Kd * (sed[id.xy].x - C);
-		depositedSed = min(depositedSed, sed[id.xy].x);
-
+		float depositedSed = Kd * (sed[id.xy] - C);
 		height[id.xy] = height[id.xy] + depositedSed;
-		sed[id.xy] = float2(sed[id.xy].x, sed[id.xy].x - depositedSed);
+		newSed[id.xy] = sed[id.xy] - depositedSed;
 	}
 }
 
 float computeCapacity(uint3 id) {
-    return Kc * sinAlpha(id) * length(vel[id.xy]) * 100 * min(water[id.xy], 0.01);
+    return Kc * sinAlpha(id) * length(vel[id.xy]) * min(0.001, water[id.xy]);
 }
 
 float sinAlpha(uint3 id) {
-	float3 up = float3(0.0, 0.0, 1.0);
 	float3 normal = computeNormal(id);
-    return max(minAngle, sin(acos(dot(normal, up))));
+    return max(minAngle, sqrt(1 - normal.z * normal.z));
 }
 
 float3 computeNormal(uint3 id) {
-    return normalize(float3(height[getR(id, resolution)] - height[getL(id, resolution)],
-		height[getT(id, resolution)] - height[getB(id, resolution)],
-		2.0));
+    float x = (height[getR(id, resolution)] - height[getL(id, resolution)]);
+    float y = (height[getT(id, resolution)] - height[getB(id, resolution)]);
+    float z = 2.0;
+    return normalize(float3(x, y, z));
 }

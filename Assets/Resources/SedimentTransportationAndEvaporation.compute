@@ -1,27 +1,21 @@
 #pragma kernel CSMain
-#include <helpers.cginc>
 
-RWTexture2D<float> height;
-RWTexture2D<float2> water;
+RWTexture2D<float> water;
 RWTexture2D<float2> vel;
-RWTexture2D<float2> sed;
-RWTexture2D<float4> terrainFlux;
+RWTexture2D<float> sed;
+RWTexture2D<float> newSed;
 
-int resolution;
+uint resolution;
 float dTime;
 float Ke;
-float threshold;
 
 float computeSedimentTransport(uint3 id);
-float4 computeTerrainFlux(uint3 id);
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float s = computeSedimentTransport(id);
-	sed[id.xy] = float2(s, sed[id.xy].y);
-	water[id.xy] = float2(max(0.0, water[id.xy].y * (1.0 - Ke * dTime)), 0.0);
-    terrainFlux[id.xy] = computeTerrainFlux(id);
+    sed[id.xy] = computeSedimentTransport(id);
+	water[id.xy] = max(0.0, water[id.xy] * (1.0 - Ke * dTime));
 }
 
 float computeSedimentTransport(uint3 id) {
@@ -30,11 +24,10 @@ float computeSedimentTransport(uint3 id) {
      
     int x0 = floor(fromPos.x);
     int y0 = floor(fromPos.y);
+    float fX = frac(fromPos.x);
+    float fY = frac(fromPos.y);
     int x1 = x0 + 1;
     int y1 = y0 + 1;
-
-    float fX = fromPos.x - x0;
-    float fY = fromPos.y - y0;
 
     x0 = clamp(x0, 0, resolution - 1);
     x1 = clamp(x1, 0, resolution - 1);
@@ -42,51 +35,8 @@ float computeSedimentTransport(uint3 id) {
     y1 = clamp(y1, 0, resolution - 1);
 
     return lerp(
-        lerp(sed[uint2(x0, y0)].y, sed[uint2(x1, y0)].y, fX),
-        lerp(sed[uint2(x0, y1)].y, sed[uint2(x1, y1)].y, fX)
+        lerp(newSed[uint2(x0, y0)], newSed[uint2(x1, y0)], fX),
+        lerp(newSed[uint2(x0, y1)], newSed[uint2(x1, y1)], fX)
         , fY);
-}
-
-float4 computeTerrainFlux(uint3 id)
-{
-    float scalingFactor = dTime * 0.001;
-
-    float maxCurvature = 0.0;
-    float newCurvature = 0.0;
-
-    int xDir = 0;
-    int yDir = 0;
-
-	if (isInside(id, resolution))
-	{
-        for (int i = -1; i < 2; i++) {
-            for (int j = 0; j < 2; j++) {
-                if (i + j >= 0 && (i != 0 || j != 0)) {
-	    			float hPos = 0.0;
-	    			float hNeg = 0.0;
-					hPos = height[id.xy] - height[uint2(id.x + i, id.y + j)];
-					hNeg = height[id.xy] - height[uint2(id.x - i, id.y - j)];
-					newCurvature = max(0.0, hPos + hNeg);
-
-					if (newCurvature > threshold && newCurvature > maxCurvature)
-					{
-						if (hPos > hNeg)
-						{
-							xDir = i;
-							yDir = j;
-						}
-						else
-						{
-							xDir = -i;
-							yDir = -j;
-						}
-						maxCurvature = newCurvature;
-					}
-				}
-			}
-		}
-    }
-
-    return float4(xDir, yDir, maxCurvature * scalingFactor, 0.0);
 }
  

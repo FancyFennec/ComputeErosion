@@ -1,0 +1,62 @@
+#pragma kernel CSMain
+#include <helpers.cginc>
+
+RWTexture2D<float> height;
+RWTexture2D<float4> terrainFlux;
+
+uint resolution;
+float dTime;
+float threshold;
+
+float4 computeTerrainFlux(uint3 id);
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    terrainFlux[id.xy] = computeTerrainFlux(id);
+}
+
+
+float4 computeTerrainFlux(uint3 id)
+{
+    float scalingFactor = dTime * 0.1;
+
+    float maxCurvature = 0.0;
+    float newCurvature = 0.0;
+
+    int xDir = 0;
+    int yDir = 0;
+
+	if (isInside(id, resolution))
+	{
+        for (int i = -1; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                if (i + j >= 0 && (i != 0 || j != 0)) {
+	    			float hPos = 0.0;
+	    			float hNeg = 0.0;
+					hPos = height[id.xy] - height[uint2(id.x + i, id.y + j)];
+					hNeg = height[id.xy] - height[uint2(id.x - i, id.y - j)];
+					newCurvature = max(0.0, hPos + hNeg);
+
+					if (newCurvature > threshold && newCurvature > maxCurvature)
+					{
+						if (hPos > hNeg)
+						{
+							xDir = i;
+							yDir = j;
+						}
+						else
+						{
+							xDir = -i;
+							yDir = -j;
+						}
+						maxCurvature = newCurvature;
+					}
+				}
+			}
+		}
+    }
+
+    return float4(xDir, yDir, maxCurvature * scalingFactor, 0.0);
+}
+ 

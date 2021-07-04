@@ -41,7 +41,6 @@ public class ErosionShaderBuilder : ErosionShader
 		ErosionShader erosionShader = new ErosionShader(name, resolution, textures, consts);
 		consts.ForEach(constant => constant.addShader(erosionShader));
 		erosionShader.SetTextures();
-		erosionShader.Dispatch();
 		return erosionShader;
 	}
 }

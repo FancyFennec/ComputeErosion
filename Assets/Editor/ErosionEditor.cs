@@ -11,6 +11,7 @@ public class ErosionShaderNames
     public const string WATER_AND_VELOCIY = "WaterAndVelocity";
     public const string EROSION_AND_DECOMPOSITION = "ErosionAndDecomposition";
     public const string SEDIMENT_TRANSPORT_AND_EVAPORATION = "SedimentTransportationAndEvaporation";
+    public const string MATERIAL_FLUX = "MaterialFlux";
     public const string MATERIAL_TRANSPORT = "MaterialTransport";
 }
 
@@ -45,6 +46,7 @@ public class ErosionEditor : Editor
     ErosionShader addWaterShader;
     ErosionShader erosionAndDecompositionShader;
     ErosionShader sedimentTransportAndEvaporationShader;
+    ErosionShader materialFlux;
     ErosionShader materialTransportShader;
     List<ErosionShader> shaders;
 
@@ -54,27 +56,32 @@ public class ErosionEditor : Editor
     ErosionTexture terrainFlux;
     ErosionTexture velocity;
     ErosionTexture sediment;
+    ErosionTexture newSediment;
     List<ErosionTexture> textures;
 
     float xOffset = 0f;
     float yOffset = 0f;
 
-    static ErosionFloat waterIncrease = new ErosionFloat("waterIncrease", 0.000003f, "Water Increase", 0f, 0.00005f);
-    static ErosionFloat evaporationConstant = new ErosionFloat("Ke", 0.00003f, "Evaporation", 0.0000001f, 0.001f);
-    static ErosionFloat capacityConstant = new ErosionFloat("Kc", 0.25f, "Capacity", 0.0000001f, 3f);
-    static ErosionFloat solubilityConstant = new ErosionFloat("Ks", 0.002f, "Solubility", 0.0000001f, 0.1f);
-    static ErosionFloat depositionConstant = new ErosionFloat("Kd", 0.002f, "Deposition", 0.0000001f, 0.1f);
+    static ErosionFloat dTime = new ErosionFloat("dTime", 0.1f, "Time Step", 0f, 1f);
+    static ErosionFloat length = new ErosionFloat("l", 1.0f, "Pipe Length", 0.0000001f, 1f);
+    static ErosionFloat area = new ErosionFloat("A", 0.8f, "Pipe Area", 0.0000001f, 1f);
+    static ErosionFloat waterIncrease = new ErosionFloat("waterIncrease", 0.000003f, "Water Increase", 0f, 0.0001f);
+    static ErosionFloat evaporationConstant = new ErosionFloat("Ke", 0.0116f, "Evaporation", 0.0000001f, 0.1f);
     static ErosionFloat minAngle = new ErosionFloat("minAngle", 0.05f, "Min Angle", 0.0f, 1.0f);
-    static ErosionFloat dTime = new ErosionFloat("dTime", 1000.0f / 60f, "Time Step", 0f, 100f);
+    static ErosionFloat capacityConstant = new ErosionFloat("Kc", 0.8f, "Capacity", 0.0000001f, 1.0f);
+    static ErosionFloat solubilityConstant = new ErosionFloat("Ks", 0.025f, "Solubility", 0.0000001f, 0.05f);
+    static ErosionFloat depositionConstant = new ErosionFloat("Kd", 0.004f, "Deposition", 0.0000001f, 0.05f);
     static ErosionFloat curvatureThreshold = new ErosionFloat("threshold", 0.005f, "Curvature Threshold", 0f, 0.1f);
-    List<ErosionFloat> constants = new List<ErosionFloat>() { 
+    List<ErosionFloat> constants = new List<ErosionFloat>() {
+        dTime,
+        length,
+        area,
         waterIncrease, 
-        evaporationConstant, 
+        evaporationConstant,
+        minAngle,
         capacityConstant, 
         solubilityConstant, 
         depositionConstant,
-        minAngle,
-        dTime,
         curvatureThreshold
     };
 
@@ -96,7 +103,6 @@ public class ErosionEditor : Editor
     {
         if (!editingTerrain)
         {
-            addWaterShader.SetFloat("time", ((float)EditorApplication.timeSinceStartup % 10));
             shaders.ForEach(s => s.Dispatch());
         }
     }
@@ -120,6 +126,8 @@ public class ErosionEditor : Editor
 		{
             GUILayout.Label("Water Control");
             dTime.drawSlider();
+            area.drawSlider();
+            length.drawSlider();
             waterIncrease.drawSlider();
             evaporationConstant.drawSlider();
             GUILayout.Label("Erosion Control");
@@ -184,7 +192,7 @@ public class ErosionEditor : Editor
             GUILayout.Label("Freq " + index);
             float frequency = Mathf.Exp(EditorGUILayout.Slider(Mathf.Log(octave.frequency + 1), 0f, 5f)) - 1;
             GUILayout.Label("Amp " + index);
-            float amplitude = EditorGUILayout.Slider(octave.amplitude, 0f, 1f);
+            float amplitude = EditorGUILayout.Slider(octave.amplitude, -1f, 10f);
 
             if (frequency != octave.frequency || amplitude != octave.amplitude)
             {
@@ -231,13 +239,14 @@ public class ErosionEditor : Editor
     private void InitialiseTextures()
     {
         height = new ErosionTexture("height", resolution, RenderTextureFormat.RFloat);
-        water = new ErosionTexture("water", resolution, RenderTextureFormat.RGFloat);
+        water = new ErosionTexture("water", resolution, RenderTextureFormat.RFloat);
         flux = new ErosionTexture("flux", resolution, RenderTextureFormat.ARGBFloat);
-        terrainFlux = new ErosionTexture("terrainFlux", resolution, RenderTextureFormat.ARGBFloat);
         velocity = new ErosionTexture("vel", resolution, RenderTextureFormat.RGFloat);
-        sediment = new ErosionTexture("sed", resolution, RenderTextureFormat.RGFloat);
+        sediment = new ErosionTexture("sed", resolution, RenderTextureFormat.RFloat);
+        newSediment = new ErosionTexture("newSed", resolution, RenderTextureFormat.RFloat);
+        terrainFlux = new ErosionTexture("terrainFlux", resolution, RenderTextureFormat.ARGBFloat);
 
-        textures = new List<ErosionTexture>() { height, water, flux, terrainFlux, velocity, sediment };
+        textures = new List<ErosionTexture>() { height, water, flux, terrainFlux, velocity, sediment, newSediment };
     }   
 
     private void InitialiseShaders()
@@ -254,18 +263,22 @@ public class ErosionEditor : Editor
             .withTexture(water)
             .withTexture(flux)
             .withConst(dTime)
+            .withConst(length)
+            .withConst(area)
             .build();
         waterAndVelocityShader = new ErosionShaderBuilder().withName(ErosionShaderNames.WATER_AND_VELOCIY).withResolution(resolution)
             .withTexture(water)
             .withTexture(flux)
             .withTexture(velocity)
             .withConst(dTime)
+            .withConst(length)
             .build();
         erosionAndDecompositionShader = new ErosionShaderBuilder().withName(ErosionShaderNames.EROSION_AND_DECOMPOSITION).withResolution(resolution)
-            .withTexture(height)
-           .withTexture(water)
+           .withTexture(height)
            .withTexture(velocity)
+           .withTexture(water)
            .withTexture(sediment)
+           .withTexture(newSediment)
            .withConst(capacityConstant)
            .withConst(solubilityConstant)
            .withConst(depositionConstant)
@@ -273,19 +286,22 @@ public class ErosionEditor : Editor
            .withConst(dTime)
            .build();
         sedimentTransportAndEvaporationShader = new ErosionShaderBuilder().withName(ErosionShaderNames.SEDIMENT_TRANSPORT_AND_EVAPORATION).withResolution(resolution)
-            .withTexture(height)
            .withTexture(water)
            .withTexture(velocity)
            .withTexture(sediment)
-           .withTexture(terrainFlux)
+           .withTexture(newSediment)
            .withConst(evaporationConstant)
+           .withConst(dTime)
+           .build();
+        materialFlux = new ErosionShaderBuilder().withName(ErosionShaderNames.MATERIAL_FLUX).withResolution(resolution)
+           .withTexture(height)
+           .withTexture(terrainFlux)
            .withConst(dTime)
            .withConst(curvatureThreshold)
            .build();
         materialTransportShader = new ErosionShaderBuilder().withName(ErosionShaderNames.MATERIAL_TRANSPORT).withResolution(resolution)
-            .withTexture(height)
+           .withTexture(height)
            .withTexture(terrainFlux)
-           .withTexture(sediment)
            .withConst(dTime)
            .build();
 
@@ -295,6 +311,7 @@ public class ErosionEditor : Editor
             waterAndVelocityShader, 
             erosionAndDecompositionShader, 
             sedimentTransportAndEvaporationShader,
+            materialFlux,
             materialTransportShader
         };
     }

@@ -2,25 +2,22 @@
 #include <helpers.cginc>
 
 RWTexture2D<float4> flux;
-RWTexture2D<float2> water;
+RWTexture2D<float> water;
 RWTexture2D<float2> vel;
 
-int resolution;
+uint resolution;
 float dTime;
+float l;
 
 float computeDeltaV(uint3 id);
-float2 computeVel(uint3 id, float l);
+float2 computeVel(uint3 id, float dWater);
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float l = 1000.0 / ((float) resolution);
-    float area = l * l; // lx * ly
-
-    float dW = computeDeltaV(id) / area;
-
-    water[id.xy] = float2(water[id.xy].x, water[id.xy].x + dW);
-    vel[id.xy] = computeVel(id, l);
+    float dWater = computeDeltaV(id) / (l * l);
+    vel[id.xy] = computeVel(id, dWater);
+    water[id.xy] = water[id.xy] + dWater;
 }
 
 float computeDeltaV(uint3 id) 
@@ -48,15 +45,15 @@ float computeDeltaV(uint3 id)
     return dTime * (fIn - fOut);
 }
 
-float2 computeVel(uint3 id, float l)
+float2 computeVel(uint3 id, float dWater)
 {
-    float meanWater = (water[id.xy].x + water[id.xy].y) * 0.5;
+    float meanWater = (2 * water[id.xy] + dWater) * 0.5;
 
-    if (meanWater != 0.0) {
-        float velX = (flux[getL(id, resolution)].y - flux[id.xy].x + flux[id.xy].y - flux[getR(id, resolution)].x) / (2.0 * meanWater * l);
-        float velY = (flux[getB(id, resolution)].z - flux[id.xy].w + flux[id.xy].z - flux[getT(id, resolution)].w) / (2.0 * meanWater * l);
-		
-        return float2(velX, velY);
+    if (meanWater > 1e-5) {
+        float dWx = (flux[getL(id, resolution)].y - flux[id.xy].x + flux[id.xy].y - flux[getR(id, resolution)].x) * 0.5;
+        float dWy = (flux[getB(id, resolution)].z - flux[id.xy].w + flux[id.xy].z - flux[getT(id, resolution)].w) * 0.5;
+        
+        return float2(dWx, dWy) / (meanWater * l);
 	}
     else {
         return float2(0.0, 0.0);

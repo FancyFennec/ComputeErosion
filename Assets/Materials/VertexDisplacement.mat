@@ -130,10 +130,11 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    m_Ints: []
     m_Floats:
-    - Vector1_188F15D9: 5
+    - Vector1_188F15D9: 1.26
     - Vector1_BECCC10D: 6
-    - Vector1_CF696A6F: 10
+    - Vector1_CF696A6F: 8.39
     - Vector1_F41B8666: 0.002
     - _AORemapMax: 1
     - _AORemapMin: 0

@@ -22,12 +22,13 @@ public class ErosionTexture
 
 	private void InitialiseTexture()
 	{
-		RenderTexture texture = new RenderTexture(resolution, resolution, 32, format)
+		RenderTexture texture = new RenderTexture(resolution, resolution, 0, format)
 		{
 			enableRandomWrite = true,
 			useDynamicScale = true
 		};
 		texture.Create();
+		texture.DiscardContents(true, true);
 		this.texture = texture;
 	}
 

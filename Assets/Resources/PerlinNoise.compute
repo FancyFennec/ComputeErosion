@@ -6,7 +6,7 @@ struct Octave {
 };
 
 RWTexture2D<float> height;
-int resolution;
+uint resolution;
 
 RWStructuredBuffer<Octave> octaves;
 int octaveCount = 0;
